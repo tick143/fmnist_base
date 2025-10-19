@@ -19,3 +19,8 @@ config: {'training': {'epochs': 5, 'batch_size': 128, 'log_interval': 100, 'devi
 2025-10-19 18:05:25,081 INFO    MainThread:19398 [wandb_run.py:_redirect():2426] Wrapping output streams.
 2025-10-19 18:05:25,081 INFO    MainThread:19398 [wandb_run.py:_redirect():2449] Redirects installed.
 2025-10-19 18:05:25,083 INFO    MainThread:19398 [wandb_init.py:init():1076] run started, returning control to user process
+2025-10-19 18:08:13,231 INFO    MainThread:19398 [wandb_run.py:_finish():2275] finishing run tick143-n-/alt-back/imiuskqw
+2025-10-19 18:08:13,232 INFO    MainThread:19398 [wandb_run.py:_atexit_cleanup():2474] got exitcode: 0
+2025-10-19 18:08:13,232 INFO    MainThread:19398 [wandb_run.py:_restore():2456] restore
+2025-10-19 18:08:13,232 INFO    MainThread:19398 [wandb_run.py:_restore():2462] restore done
+2025-10-19 18:08:14,154 INFO    MainThread:19398 [wandb_run.py:_footer_sync_info():3872] logging synced files

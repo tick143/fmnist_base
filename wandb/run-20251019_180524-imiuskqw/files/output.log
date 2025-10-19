@@ -20,3 +20,18 @@ Epoch 3/5 -> device=mps
 [train] batch 200/469 loss=2.3022 acc=10.46%
 [train] batch 300/469 loss=2.3023 acc=10.35%
 [train] batch 400/469 loss=2.3023 acc=10.43%
+[epoch 3] train_loss=2.3023 train_acc=10.48% | test_loss=2.3013 test_acc=11.12%
+
+Epoch 4/5 -> device=mps
+[train] batch 100/469 loss=2.3022 acc=10.68%
+[train] batch 200/469 loss=2.3022 acc=10.52%
+[train] batch 300/469 loss=2.3022 acc=10.63%
+[train] batch 400/469 loss=2.3023 acc=10.63%
+[epoch 4] train_loss=2.3023 train_acc=10.58% | test_loss=2.3028 test_acc=11.08%
+
+Epoch 5/5 -> device=mps
+[train] batch 100/469 loss=2.3024 acc=10.29%
+[train] batch 200/469 loss=2.3023 acc=10.51%
+[train] batch 300/469 loss=2.3023 acc=10.63%
+[train] batch 400/469 loss=2.3023 acc=10.53%
+[epoch 5] train_loss=2.3023 train_acc=10.54% | test_loss=2.3020 test_acc=10.43%

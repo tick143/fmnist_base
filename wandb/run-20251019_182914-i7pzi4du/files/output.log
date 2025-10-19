@@ -1,0 +1,18 @@
+
+Epoch 1/5 -> device=mps
+/Users/danburke-ward/Outside/alt_back/.venv/lib/python3.11/site-packages/torch/utils/data/dataloader.py:692: UserWarning: 'pin_memory' argument is set as true but not supported on MPS now, device pinned memory won't be used.
+  warnings.warn(warn_msg)
+[train] batch 100/469 loss=nan acc=10.04%
+[train] batch 200/469 loss=nan acc=10.24%
+[train] batch 300/469 loss=nan acc=10.19%
+[train] batch 400/469 loss=nan acc=10.08%
+[epoch 1] train_loss=nan train_acc=10.06% | test_loss=nan test_acc=10.00%
+
+Epoch 2/5 -> device=mps
+[train] batch 100/469 loss=nan acc=10.36%
+[train] batch 200/469 loss=nan acc=10.25%
+[train] batch 300/469 loss=nan acc=10.09%
+[train] batch 400/469 loss=nan acc=10.06%
+[epoch 2] train_loss=nan train_acc=10.00% | test_loss=nan test_acc=10.00%
+
+Epoch 3/5 -> device=mps

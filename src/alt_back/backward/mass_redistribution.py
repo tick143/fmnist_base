@@ -15,6 +15,7 @@ class MassRedistributionBackwardStrategy(BackwardStrategy):
     def __init__(
         self,
         base_lr: float = 0.1,
+        output_lr: float | None = None,
         correct_scale: float = 0.3,
         incorrect_scale: float = 1.0,
         max_signal: float = 3.0,
@@ -26,6 +27,7 @@ class MassRedistributionBackwardStrategy(BackwardStrategy):
     ) -> None:
         super().__init__(
             base_lr=base_lr,
+            output_lr=output_lr,
             correct_scale=correct_scale,
             incorrect_scale=incorrect_scale,
             max_signal=max_signal,
@@ -36,6 +38,7 @@ class MassRedistributionBackwardStrategy(BackwardStrategy):
             **kwargs,
         )
         self.base_lr = base_lr
+        self.output_lr = output_lr if output_lr is not None else base_lr
         self.correct_scale = correct_scale
         self.incorrect_scale = incorrect_scale
         self.max_signal = max_signal
@@ -66,8 +69,6 @@ class MassRedistributionBackwardStrategy(BackwardStrategy):
                 if not hasattr(module, "weight"):
                     continue
 
-                module_count += 1
-
                 weight = module.weight
                 if weight.dim() not in (2, 4):
                     continue
@@ -81,46 +82,24 @@ class MassRedistributionBackwardStrategy(BackwardStrategy):
 
                 sample_scale = self._expand_scale(scale, outputs.size(0), record.output.shape)
                 scaled_outputs = outputs * sample_scale.unsqueeze(1)
-                coactivity = torch.matmul(scaled_outputs.abs().T, inputs.abs())
-                coactivity = coactivity / (coactivity.sum(dim=1, keepdim=True) + self.eps)
-                coactivity = torch.clamp(coactivity, min=self.eps)
-                focused = torch.pow(coactivity / (self.temperature + self.eps), self.focus_power)
-                target_alloc = focused / (focused.sum(dim=1, keepdim=True) + self.eps)
+                coactivity = torch.matmul(scaled_outputs.T, inputs)
 
-                current_abs = flat_weight.abs()
-                current_total = current_abs.sum(dim=1, keepdim=True)
-                current_total = torch.clamp(current_total, min=self.eps)
-                current_alloc = current_abs / current_total
+                if self._is_output_layer(module, record.output, context.outputs):
+                    self._update_output_layer(module, record.inputs[0], context)
 
-                lr = self.base_lr * mean_scale
-                delta_alloc = torch.clamp(current_alloc + lr * (target_alloc - current_alloc), min=0.0)
-                delta_alloc = delta_alloc / (delta_alloc.sum(dim=1, keepdim=True) + self.eps)
+                focused = torch.tanh(coactivity / (self.temperature + 1e-6))
+                signed_step = torch.sign(coactivity) * focused.abs().pow(self.focus_power)
 
-                adjustment = (mean_scale - self.correct_scale) / (self.incorrect_scale - self.correct_scale + self.eps)
-                target_total = torch.clamp(
-                    current_total + self.base_lr * adjustment * (self.max_signal - current_total),
-                    self.min_signal,
-                    self.max_signal,
-                )
+                lr = self.base_lr
+                new_weight = flat_weight + lr * signed_step
 
-                if self.redistribution_rate > 0:
-                    uniform = torch.full_like(delta_alloc, 1.0 / delta_alloc.size(1))
-                    delta_alloc = (1 - self.redistribution_rate) * delta_alloc + self.redistribution_rate * uniform
-                    delta_alloc = delta_alloc / (delta_alloc.sum(dim=1, keepdim=True) + self.eps)
-
-                new_abs = delta_alloc * target_total
-                new_weight = self._reapply_sign(flat_weight, new_abs, target_alloc - current_alloc)
-
-                row_sums = new_abs.sum(dim=1, keepdim=True)
-                exceed_mask = row_sums > self.max_signal
-                if exceed_mask.any():
-                    scale_factors = self.max_signal / (row_sums + self.eps)
-                    new_weight = torch.where(exceed_mask, new_weight * scale_factors, new_weight)
-                    row_sums = new_weight.abs().sum(dim=1, keepdim=True)
+                row_l1 = new_weight.abs().sum(dim=1, keepdim=True)
+                over = (row_l1 > self.max_signal).float()
+                shrink = (row_l1 - self.max_signal) / (row_l1 + self.eps)
+                new_weight = new_weight - over * shrink * new_weight
+                new_weight = torch.nan_to_num(new_weight, nan=0.0, posinf=self.max_signal, neginf=-self.max_signal)
 
                 module.weight.data.copy_(reshape_fn(new_weight))
-                if module.bias is not None:
-                    module.bias.data.add_(-lr * module.bias.data)
 
                 if module.weight.grad is not None:
                     module.weight.grad = None
@@ -128,9 +107,12 @@ class MassRedistributionBackwardStrategy(BackwardStrategy):
                     module.bias.grad = None
 
                 context.extras.setdefault("mass_entropy", 0.0)
-                entropy = -(target_alloc * torch.log(target_alloc + self.eps)).sum(dim=1).mean().item()
+                abs_alloc = new_weight.abs() / (new_weight.abs().sum(dim=1, keepdim=True) + self.eps)
+                entropy = -(abs_alloc * torch.log(abs_alloc + self.eps)).sum(dim=1).mean().item()
                 context.extras["mass_entropy"] += entropy
-                total_signal += row_sums.mean().item()
+                total_signal += row_l1.mean().item()
+
+                module_count += 1
 
             if module_count > 0 and "mass_entropy" in context.extras:
                 context.extras["mass_entropy"] /= module_count
@@ -180,8 +162,27 @@ class MassRedistributionBackwardStrategy(BackwardStrategy):
             return weight.view(shape[0], -1), lambda w: w.view(shape)
         raise ValueError("Unsupported weight dimensionality for mass redistribution strategy")
 
-    def _reapply_sign(self, weight: torch.Tensor, new_abs: torch.Tensor, delta_alloc: torch.Tensor) -> torch.Tensor:
-        sign = torch.sign(weight)
-        alt_sign = torch.sign(delta_alloc)
-        sign = torch.where(sign == 0, alt_sign, sign)
-        return sign * new_abs
+    def _is_output_layer(
+        self,
+        module: torch.nn.Module,
+        hook_output: torch.Tensor,
+        model_output: torch.Tensor,
+    ) -> bool:
+        if not isinstance(module, torch.nn.Linear):
+            return False
+        return hook_output.shape == model_output.shape
+
+    def _update_output_layer(
+        self,
+        module: torch.nn.Module,
+        inputs: torch.Tensor,
+        context: BatchContext,
+    ) -> None:
+        with torch.no_grad():
+            probs = F.softmax(context.outputs.detach(), dim=1)
+            targets = torch.nn.functional.one_hot(context.targets, num_classes=probs.size(1)).to(probs.dtype)
+            error = targets - probs
+            delta = (error.T @ inputs) / inputs.size(0)
+            module.weight.data.add_(self.output_lr * delta)
+            if module.bias is not None:
+                module.bias.data.add_(self.output_lr * error.mean(dim=0))

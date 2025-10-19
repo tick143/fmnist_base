@@ -1,0 +1,37 @@
+
+Epoch 1/5 -> device=mps
+/Users/danburke-ward/Outside/alt_back/.venv/lib/python3.11/site-packages/torch/utils/data/dataloader.py:692: UserWarning: 'pin_memory' argument is set as true but not supported on MPS now, device pinned memory won't be used.
+  warnings.warn(warn_msg)
+[train] batch 100/469 loss=2.3132 acc=9.37%
+[train] batch 200/469 loss=2.3136 acc=9.79%
+[train] batch 300/469 loss=2.4093 acc=9.89%
+[train] batch 400/469 loss=2.9122 acc=9.89%
+[epoch 1] train_loss=3.5536 train_acc=9.96% | test_loss=8.2640 test_acc=10.00%
+
+Epoch 2/5 -> device=mps
+[train] batch 100/469 loss=10.4968 acc=9.85%
+[train] batch 200/469 loss=12.5803 acc=10.07%
+[train] batch 300/469 loss=14.7283 acc=10.08%
+[train] batch 400/469 loss=16.9030 acc=10.06%
+[epoch 2] train_loss=18.4319 train_acc=9.95% | test_loss=28.1208 test_acc=10.00%
+
+Epoch 3/5 -> device=mps
+[train] batch 100/469 loss=30.5858 acc=9.88%
+[train] batch 200/469 loss=32.7640 acc=10.10%
+[train] batch 300/469 loss=34.9743 acc=10.03%
+[train] batch 400/469 loss=37.1257 acc=10.14%
+[epoch 3] train_loss=38.7238 train_acc=10.08% | test_loss=48.4755 test_acc=10.00%
+
+Epoch 4/5 -> device=mps
+[train] batch 100/469 loss=51.7730 acc=9.83%
+[train] batch 200/469 loss=53.7918 acc=9.88%
+[train] batch 300/469 loss=56.1515 acc=9.92%
+[train] batch 400/469 loss=58.6240 acc=9.93%
+[epoch 4] train_loss=60.0897 train_acc=9.99% | test_loss=70.0645 test_acc=10.00%
+
+Epoch 5/5 -> device=mps
+[train] batch 100/469 loss=73.8420 acc=9.71%
+[train] batch 200/469 loss=76.1146 acc=9.95%
+[train] batch 300/469 loss=78.6294 acc=9.74%
+[train] batch 400/469 loss=80.8245 acc=9.95%
+[epoch 5] train_loss=82.6094 train_acc=9.96% | test_loss=92.9213 test_acc=10.00%

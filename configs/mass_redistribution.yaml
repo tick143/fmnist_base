@@ -15,13 +15,16 @@ model:
 backward:
   target: alt_back.backward.mass_redistribution.MassRedistributionBackwardStrategy
   params:
-    base_lr: 2
-    correct_scale: 0.25
-    incorrect_scale: 1.0
-    max_signal: 5
-    redistribution_rate: 0.1
-    focus_power: 1.6
-    min_signal: 0.2
+    base_lr: 0.5
+    output_lr: 1.0
+    correct_scale: 0.2
+    incorrect_scale: 1.2
+    max_signal: 6.0
+    min_signal: 0.3
+    focus_power: 1.4
+    temperature: 0.8
+
+
 
 optimizer:
   target: alt_back.optim.null_optimizer.NullOptimizerStrategy

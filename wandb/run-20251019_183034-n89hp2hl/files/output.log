@@ -1,0 +1,52 @@
+
+Epoch 1/5 -> device=mps
+/Users/danburke-ward/Outside/alt_back/.venv/lib/python3.11/site-packages/torch/utils/data/dataloader.py:692: UserWarning: 'pin_memory' argument is set as true but not supported on MPS now, device pinned memory won't be used.
+  warnings.warn(warn_msg)
+[train] batch 100/469 loss=2.3100 acc=10.42%
+[train] batch 200/469 loss=2.3084 acc=10.45%
+[train] batch 300/469 loss=2.3087 acc=10.38%
+[train] batch 400/469 loss=2.3089 acc=10.36%
+[epoch 1] train_loss=2.3089 train_acc=10.30% | test_loss=2.3077 test_acc=10.47%
+
+Epoch 2/5 -> device=mps
+[train] batch 100/469 loss=2.3084 acc=10.26%
+[train] batch 200/469 loss=2.3088 acc=10.23%
+[train] batch 300/469 loss=2.3094 acc=10.18%
+[train] batch 400/469 loss=2.3096 acc=10.17%
+[epoch 2] train_loss=2.3096 train_acc=10.14% | test_loss=2.3103 test_acc=9.97%
+
+Epoch 3/5 -> device=mps
+[train] batch 100/469 loss=2.3089 acc=10.00%
+[train] batch 200/469 loss=2.3087 acc=10.34%
+[train] batch 300/469 loss=2.3088 acc=10.23%
+[train] batch 400/469 loss=2.3090 acc=10.20%
+[epoch 3] train_loss=2.3090 train_acc=10.19% | test_loss=2.3126 test_acc=10.05%
+
+Epoch 4/5 -> device=mps
+[train] batch 100/469 loss=2.3085 acc=10.61%
+[train] batch 200/469 loss=2.3088 acc=10.27%
+[train] batch 300/469 loss=2.3090 acc=10.20%
+[train] batch 400/469 loss=2.3091 acc=10.24%
+[epoch 4] train_loss=2.3092 train_acc=10.24% | test_loss=2.3097 test_acc=10.00%
+
+Epoch 5/5 -> device=mps
+[train] batch 100/469 loss=2.3099 acc=10.16%
+Exception ignored in: <function _MultiProcessingDataLoaderIter.__del__ at 0x10cec9a80>
+Traceback (most recent call last):
+  File "/Users/danburke-ward/Outside/alt_back/.venv/lib/python3.11/site-packages/torch/utils/data/dataloader.py", line 1654, in __del__
+    self._shutdown_workers()
+  File "/Users/danburke-ward/Outside/alt_back/.venv/lib/python3.11/site-packages/torch/utils/data/dataloader.py", line 1618, in _shutdown_workers
+    w.join(timeout=_utils.MP_STATUS_CHECK_INTERVAL)
+  File "/Users/danburke-ward/.local/share/uv/python/cpython-3.11.12-macos-aarch64-none/lib/python3.11/multiprocessing/process.py", line 149, in join
+    res = self._popen.wait(timeout)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/danburke-ward/.local/share/uv/python/cpython-3.11.12-macos-aarch64-none/lib/python3.11/multiprocessing/popen_fork.py", line 40, in wait
+    if not wait([self.sentinel], timeout):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/danburke-ward/.local/share/uv/python/cpython-3.11.12-macos-aarch64-none/lib/python3.11/multiprocessing/connection.py", line 948, in wait
+    ready = selector.select(timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/danburke-ward/.local/share/uv/python/cpython-3.11.12-macos-aarch64-none/lib/python3.11/selectors.py", line 415, in select
+    fd_event_list = self._selector.poll(timeout)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt:

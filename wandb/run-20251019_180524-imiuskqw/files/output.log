@@ -18,3 +18,5 @@ Epoch 2/5 -> device=mps
 Epoch 3/5 -> device=mps
 [train] batch 100/469 loss=2.3023 acc=10.26%
 [train] batch 200/469 loss=2.3022 acc=10.46%
+[train] batch 300/469 loss=2.3023 acc=10.35%
+[train] batch 400/469 loss=2.3023 acc=10.43%

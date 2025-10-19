@@ -15,14 +15,21 @@ model:
 backward:
   target: alt_back.backward.mass_redistribution.MassRedistributionBackwardStrategy
   params:
-    base_lr: 0.5
-    output_lr: 1.0
-    correct_scale: 0.2
-    incorrect_scale: 1.2
-    max_signal: 6.0
-    min_signal: 0.3
-    focus_power: 1.4
-    temperature: 0.8
+    release_rate: 0.3
+    reward_gain: 0.8
+    base_release: 0.05
+    decay: 0.1
+    temperature: 0.9
+    efficiency_bonus: 0.5
+    column_competition: 0.4
+    noise_std: 0.02
+    mass_budget: 6.0
+    signed_weights: true
+    enable_target_bonus: true
+    target_gain: 0.6
+    affinity_strength: 0.1
+    affinity_decay: 0.99
+    affinity_temperature: 1.5
 
 
 

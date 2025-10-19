@@ -12,12 +12,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--host", default="127.0.0.1", help="Host interface to bind the server.")
     parser.add_argument("--port", type=int, default=8000, help="Port for the HTTP server.")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload (development only).")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="configs/tiny_spiking.yaml",
+        help="YAML configuration used to seed the playground.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    app = create_app()
+    app = create_app(config_path=args.config)
     uvicorn.run(app, host=args.host, port=args.port, reload=args.reload)
 
 

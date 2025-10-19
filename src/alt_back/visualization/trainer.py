@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace, fields, asdict
 from typing import Any, Dict
 
 import torch
 from torch import nn
+import yaml
 
 from ..backward.mass_redistribution import MassRedistributionBackwardStrategy
 from ..data.synthetic import SyntheticDatasetConfig, create_dataloaders
@@ -18,17 +19,42 @@ from ..utils.activations import ActivationRecorder
 class TrainerConfig:
     """Bundle configuration for the interactive tiny spiking trainer."""
 
-    dataset: SyntheticDatasetConfig = field(default_factory=SyntheticDatasetConfig)
+    dataset: SyntheticDatasetConfig = field(
+        default_factory=lambda: SyntheticDatasetConfig(
+            num_features=5,
+            threshold=1.0,
+            num_train=2048,
+            num_test=1024,
+            seed=13,
+            batch_size=64,
+            feature_min=-1.5,
+            feature_max=2.5,
+            noise_std=0.25,
+        )
+    )
     device: str = "cpu"
-    base_lr: float = 0.1
-    output_lr: float = 0.1
-    correct_scale: float = 0.4
-    incorrect_scale: float = 1.0
-    max_signal: float = 3.0
-    redistribution_rate: float = 0.05
-    focus_power: float = 1.5
+    release_rate: float = 0.25
+    reward_gain: float = 0.6
+    base_release: float = 0.1
+    decay: float = 0.05
     temperature: float = 1.0
-    min_signal: float = 0.5
+    efficiency_bonus: float = 0.4
+    column_competition: float = 0.3
+    noise_std: float = 0.01
+    mass_budget: float = 5.0
+    spike_threshold: float = 0.0
+    spike_temperature: float = 0.3
+    hidden_layers: list[int] = field(default_factory=lambda: [10])
+    signed_weights: bool = True
+    use_target_bonus: bool = True
+    target_gain: float = 0.5
+    affinity_strength: float = 0.1
+    affinity_decay: float = 0.99
+    affinity_temperature: float = 1.5
+    sign_consistency_strength: float = 0.2
+    sign_consistency_momentum: float = 0.9
+    snapshot_interval: int = 1
+    evaluate_interval: int = 1
 
 
 class TinySpikingTrainer:
@@ -41,25 +67,39 @@ class TinySpikingTrainer:
 
         self.model = TinySpikingNetwork(
             input_neurons=self.config.dataset.num_features,
-            hidden_neurons=10,
+            hidden_layers=self.config.hidden_layers,
             output_neurons=2,
+            spike_threshold=self.config.spike_threshold,
+            spike_temperature=self.config.spike_temperature,
         ).to(self.device)
 
         self.backward_strategy = MassRedistributionBackwardStrategy(
-            base_lr=self.config.base_lr,
-            output_lr=self.config.output_lr,
-            correct_scale=self.config.correct_scale,
-            incorrect_scale=self.config.incorrect_scale,
-            max_signal=self.config.max_signal,
-            redistribution_rate=self.config.redistribution_rate,
-            focus_power=self.config.focus_power,
+            release_rate=self.config.release_rate,
+            reward_gain=self.config.reward_gain,
+            base_release=self.config.base_release,
+            decay=self.config.decay,
             temperature=self.config.temperature,
-            min_signal=self.config.min_signal,
+            efficiency_bonus=self.config.efficiency_bonus,
+            column_competition=self.config.column_competition,
+            noise_std=self.config.noise_std,
+            mass_budget=self.config.mass_budget,
+            signed_weights=self.config.signed_weights,
+            enable_target_bonus=self.config.use_target_bonus,
+            target_gain=self.config.target_gain,
+            affinity_strength=self.config.affinity_strength,
+            affinity_decay=self.config.affinity_decay,
+            affinity_temperature=self.config.affinity_temperature,
+            sign_consistency_strength=self.config.sign_consistency_strength,
+            sign_consistency_momentum=self.config.sign_consistency_momentum,
         )
         self.optimizer_strategy = TorchOptimizerStrategy("torch.optim.SGD", lr=0.0)
         self.optimizer_strategy.setup(self.model)
 
         self.global_step = 0
+        self.snapshot_interval = max(int(self.config.snapshot_interval), 1)
+        self.evaluate_interval = max(int(self.config.evaluate_interval), 1)
+        self._last_visuals: dict[str, Any] = self._empty_visuals()
+        self._last_eval: dict[str, float] | None = None
         self._build_data()
 
     def _build_data(self) -> None:
@@ -77,6 +117,8 @@ class TinySpikingTrainer:
         self.model.apply(self._init_weights)
         self._build_data()
         self.global_step = 0
+        self._last_visuals = self._empty_visuals()
+        self._last_eval = None
 
     @staticmethod
     def _init_weights(module: nn.Module) -> None:
@@ -84,6 +126,18 @@ class TinySpikingTrainer:
             nn.init.xavier_uniform_(module.weight)
             if module.bias is not None:
                 nn.init.zeros_(module.bias)
+
+    def _empty_visuals(self) -> Dict[str, Any]:
+        return {
+            "inputs": [],
+            "targets": [],
+            "predictions": [],
+            "logits": [],
+            "hidden_preact": [],
+            "hidden_spike_rates": [],
+            "weights": {},
+            "weight_deltas": {},
+        }
 
     def _snapshot_weights(self) -> Dict[str, Dict[str, list[list[float]] | list[float]]]:
         snapshot: Dict[str, Dict[str, list[list[float]] | list[float]]] = {}
@@ -128,7 +182,8 @@ class TinySpikingTrainer:
         inputs = inputs.to(self.device)
         targets = targets.to(self.device)
 
-        before = self._snapshot_weights()
+        capture_snapshot = (self.global_step % self.snapshot_interval) == 0
+        before = self._snapshot_weights() if capture_snapshot else None
         self.optimizer_strategy.zero_grad(model=self.model)
         self.backward_strategy.zero_grad(model=self.model)
 
@@ -149,29 +204,57 @@ class TinySpikingTrainer:
             self.backward_strategy.backward(context)
             self.optimizer_strategy.step(context)
 
-        after = self._snapshot_weights()
-        deltas = self._compute_deltas(before, after)
-
         preds = outputs.argmax(dim=1)
         accuracy = (preds == targets).float().mean().item()
         extras = {key: float(value) for key, value in context.extras.items()}
 
-        hidden_linear = context.activations["encoder"].output
-        spike_rates = self.model.spike(hidden_linear.detach()).cpu()
+        if capture_snapshot:
+            after = self._snapshot_weights()
+            deltas = self._compute_deltas(before, after) if before is not None else {}
+            hidden_preacts = [tensor.detach().cpu().tolist() for tensor in self.model.last_hidden_preacts]
+            spike_rates = [tensor.detach().cpu().tolist() for tensor in self.model.last_hidden_spikes]
+            inputs_list = inputs.detach().cpu().tolist()
+            targets_list = targets.detach().cpu().tolist()
+            preds_list = preds.detach().cpu().tolist()
+            logits_list = outputs.detach().cpu().tolist()
+
+            visuals = {
+                "inputs": inputs_list,
+                "targets": targets_list,
+                "predictions": preds_list,
+                "logits": logits_list,
+                "hidden_preact": hidden_preacts,
+                "hidden_spike_rates": spike_rates,
+                "weights": after,
+                "weight_deltas": deltas,
+            }
+            self._last_visuals = visuals
+        else:
+            visuals = self._last_visuals
+
+        should_evaluate = (self.global_step % self.evaluate_interval) == 0
+        if should_evaluate:
+            evaluation = self.evaluate()
+            self._last_eval = evaluation
+        else:
+            evaluation = self._last_eval
 
         result = {
             "step": self.global_step,
             "loss": float(loss.item()),
             "batch_accuracy": float(accuracy * 100.0),
-            "predictions": preds.detach().cpu().tolist(),
-            "targets": targets.detach().cpu().tolist(),
-            "inputs": inputs.detach().cpu().tolist(),
-            "logits": outputs.detach().cpu().tolist(),
-            "hidden_preact": hidden_linear.detach().cpu().tolist(),
-            "hidden_spike_rates": spike_rates.tolist(),
-            "weights": after,
-            "weight_deltas": deltas,
+            "predictions": visuals["predictions"],
+            "targets": visuals["targets"],
+            "inputs": visuals["inputs"],
+            "logits": visuals["logits"],
+            "hidden_preact": visuals["hidden_preact"],
+            "hidden_spike_rates": visuals["hidden_spike_rates"],
+            "weights": visuals["weights"],
+            "weight_deltas": visuals["weight_deltas"],
             "extras": extras,
+            "snapshot_captured": capture_snapshot,
+            "eval": evaluation,
+            "evaluation_captured": should_evaluate,
         }
 
         self.global_step += 1
@@ -201,8 +284,212 @@ class TinySpikingTrainer:
 
     def topology(self) -> Dict[str, Any]:
         """Describe the network layout for client visualisations."""
+        hidden_layers = list(self.model.hidden_layer_sizes)
+        layer_sizes = [self.model.input_neurons, *hidden_layers, self.model.output_neurons]
+        layer_labels = ["Input"] + [f"Hidden {idx}" for idx in range(len(hidden_layers))] + ["Output"]
+
+        connections: list[Dict[str, Any]] = []
+        for idx in range(len(hidden_layers)):
+            connections.append(
+                {
+                    "name": f"hidden_layers.{idx}",
+                    "from": idx,
+                    "to": idx + 1,
+                    "label": f"{layer_labels[idx]} → {layer_labels[idx + 1]}",
+                }
+            )
+
+        connections.append(
+            {
+                "name": "decoder",
+                "from": len(layer_sizes) - 2,
+                "to": len(layer_sizes) - 1,
+                "label": f"{layer_labels[-2]} → {layer_labels[-1]}",
+            }
+        )
+
         return {
+            "layer_sizes": layer_sizes,
+            "layer_labels": layer_labels,
+            "connections": connections,
+            "hidden_layers": hidden_layers,
             "input_neurons": self.model.input_neurons,
-            "hidden_neurons": self.model.hidden_neurons,
             "output_neurons": self.model.output_neurons,
         }
+
+
+def _filter_updates(instance: Any, updates: Dict[str, Any]) -> Dict[str, Any]:
+    allowed = {f.name for f in fields(instance)}
+    return {key: value for key, value in updates.items() if key in allowed}
+
+
+def _ensure_int_list(value: Any) -> list[int]:
+    if isinstance(value, list | tuple):
+        result = [int(v) for v in value]
+    elif isinstance(value, str):
+        parts = [part.strip() for part in value.split(",") if part.strip()]
+        if not parts:
+            msg = "hidden_layers string must contain at least one integer"
+            raise ValueError(msg)
+        result = [int(part) for part in parts]
+    elif isinstance(value, int):
+        result = [int(value)]
+    else:
+        msg = f"Cannot coerce {value!r} into a list of integers"
+        raise TypeError(msg)
+
+    if not result:
+        msg = "hidden_layers must contain at least one entry"
+        raise ValueError(msg)
+    return result
+
+
+def _coerce_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"true", "1", "yes", "on"}:
+            return True
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+    return bool(value)
+
+
+def _coerce_positive_int(value: Any, minimum: int = 1) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:  # pragma: no cover - defensive conversion
+        raise ValueError(f"Expected an integer value, received {value!r}") from exc
+    return max(parsed, minimum)
+
+
+def trainer_config_from_dict(
+    data: Dict[str, Any],
+    base: TrainerConfig | None = None,
+) -> TrainerConfig:
+    """Merge a payload of user-provided values into a TrainerConfig."""
+    config = base or TrainerConfig()
+    raw_updates = {k: v for k, v in data.items() if k != "dataset"}
+
+    if "hidden_layers" in raw_updates:
+        raw_updates["hidden_layers"] = _ensure_int_list(raw_updates["hidden_layers"])
+    if "use_target_bonus" in raw_updates:
+        raw_updates["use_target_bonus"] = _coerce_bool(raw_updates["use_target_bonus"])
+    if "signed_weights" in raw_updates:
+        raw_updates["signed_weights"] = _coerce_bool(raw_updates["signed_weights"])
+    if "snapshot_interval" in raw_updates:
+        raw_updates["snapshot_interval"] = _coerce_positive_int(raw_updates["snapshot_interval"], minimum=1)
+    if "evaluate_interval" in raw_updates:
+        raw_updates["evaluate_interval"] = _coerce_positive_int(raw_updates["evaluate_interval"], minimum=1)
+
+    top_level_updates = _filter_updates(config, raw_updates)
+    if top_level_updates:
+        config = replace(config, **top_level_updates)
+
+    dataset_payload = data.get("dataset")
+    if dataset_payload:
+        filtered_dataset = _filter_updates(config.dataset, dataset_payload)
+        config = replace(config, dataset=replace(config.dataset, **filtered_dataset))
+
+    return config
+
+
+def trainer_config_to_dict(config: TrainerConfig) -> Dict[str, Any]:
+    """Serialise the trainer config for JSON responses."""
+    return asdict(config)
+
+
+def trainer_config_from_yaml(path: str, base: TrainerConfig | None = None) -> TrainerConfig:
+    """Load a trainer configuration from a YAML file compatible with training configs."""
+    with open(path, "r", encoding="utf-8") as fh:
+        raw = yaml.safe_load(fh) or {}
+
+    payload: Dict[str, Any] = {}
+    training_section = raw.get("training", {})
+    dataset_section = raw.get("dataset", {})
+    model_section = raw.get("model", {})
+    backward_section = raw.get("backward", {})
+
+    dataset_params = dataset_section.get("params", {})
+    dataset_payload = {
+        key: value
+        for key, value in dataset_params.items()
+        if key
+        in {
+            "num_features",
+            "threshold",
+            "num_train",
+            "num_test",
+            "seed",
+            "batch_size",
+            "num_workers",
+            "shuffle",
+            "feature_min",
+            "feature_max",
+            "noise_std",
+        }
+    }
+
+    if training_section.get("batch_size") is not None:
+        dataset_payload.setdefault("batch_size", training_section["batch_size"])
+    if training_section.get("num_workers") is not None:
+        dataset_payload.setdefault("num_workers", training_section["num_workers"])
+    if training_section.get("seed") is not None:
+        dataset_payload.setdefault("seed", training_section["seed"])
+
+    if dataset_payload:
+        payload["dataset"] = dataset_payload
+
+    model_params = model_section.get("params", {})
+    if "hidden_layers" in model_params:
+        payload["hidden_layers"] = _ensure_int_list(model_params["hidden_layers"])
+    elif "hidden_neurons" in model_params:
+        payload["hidden_layers"] = _ensure_int_list(model_params["hidden_neurons"])
+
+    for key in ("spike_threshold", "spike_temperature", "input_neurons"):
+        if key in model_params:
+            if key == "input_neurons":
+                payload.setdefault("dataset", {})["num_features"] = model_params[key]
+            else:
+                payload[key] = model_params[key]
+
+    backward_params = backward_section.get("params", {})
+    for key in (
+        "release_rate",
+        "reward_gain",
+        "base_release",
+        "decay",
+        "temperature",
+        "efficiency_bonus",
+        "column_competition",
+        "noise_std",
+        "mass_budget",
+        "target_gain",
+        "affinity_strength",
+        "affinity_decay",
+        "affinity_temperature",
+        "sign_consistency_strength",
+        "sign_consistency_momentum",
+    ):
+        if key in backward_params:
+            payload[key] = backward_params[key]
+
+    if "signed_weights" in backward_params:
+        payload["signed_weights"] = _coerce_bool(backward_params["signed_weights"])
+
+    if "enable_target_bonus" in backward_params:
+        payload["use_target_bonus"] = _coerce_bool(backward_params["enable_target_bonus"])
+    elif "use_target_bonus" in backward_params:
+        payload["use_target_bonus"] = _coerce_bool(backward_params["use_target_bonus"])
+
+    if training_section.get("device"):
+        payload["device"] = training_section["device"]
+
+    logging_section = raw.get("logging", {})
+    if "snapshot_interval" in logging_section:
+        payload["snapshot_interval"] = logging_section["snapshot_interval"]
+    if "evaluate_interval" in logging_section:
+        payload["evaluate_interval"] = logging_section["evaluate_interval"]
+
+    return trainer_config_from_dict(payload, base=base)

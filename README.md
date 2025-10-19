@@ -41,7 +41,7 @@ For a lightweight, synthetic demo that highlights how the mass-redistribution ru
 alt-back-viz --port 8000
 ```
 
-This spins up a FastAPI server with a 5-10-2 spiking network trained on a balanced synthetic dataset (`y = 1` when `sum(x) > 2.5`). The web UI exposes single-step and auto-stepping controls, live topology visualisation, per-synapse deltas, spike-rate heatmaps, and running evaluation metrics.
+This spins up a FastAPI server with a spiking network trained on a balanced synthetic dataset (`y = 1` when `sum(x) > 1.0`). Inputs are sampled from a widened range (default `[-1.5, 2.5]`) with injected noise so the early synapses stay lively. The learning rule is now “neurotransmitter redistribution”: after every batch we release a reward-dependent pool of transmitter, push it through co-activity/efficiency signals, and redistribute each neuron’s incoming mass without gradients. Persistent affinities, column competition, and sign-consistency keep pathways from collapsing. You can tweak the dataset params (`feature_min`, `feature_max`, `noise_std`, `threshold`), reshape the hidden stack (`hidden_layers` accepts an arbitrary comma-separated list), or adjust the redistribution knobs (release rate, reward gain, decay, affinity/sign strengths, column competition, mass budget, noise) from the UI. Flip the target bonus toggle off to stay fully reward-agnostic. Edit `configs/tiny_spiking.yaml`, reload it straight from the UI, or adjust everything live in the browser panel. The web UI exposes single-step and auto-stepping controls, live topology visualisation (orange/blue edges encode positive/negative weight strength), per-synapse deltas, spike-rate heatmaps, and running evaluation metrics.
 
 ### Configuration
 

@@ -11,20 +11,189 @@
       <h1>Tiny Spiking Playground</h1>
       <p>Interactively inspect how mass redistribution updates the weights of a 5-10-2 spiking network.</p>
     </header>
+    <nav class="tabs">
+      <button class="tab-button active" data-tab="playground">Playground</button>
+      <button class="tab-button" data-tab="learn">How It Learns</button>
+    </nav>
+    <section id="tab-playground" class="tab-panel">
     <section class="controls">
       <div class="button-row">
         <button id="step-btn">Single Step</button>
         <button id="auto-btn" data-running="false">Auto Step</button>
         <button id="reset-btn">Reset</button>
+        <button id="reload-btn" class="ghost">Reload YAML</button>
       </div>
       <label for="seed-input">
         Seed:
         <input id="seed-input" type="number" placeholder="Optional" />
       </label>
+      <label class="speed-control" title="Adjust the delay between auto steps (milliseconds).">
+        Speed:
+        <input id="auto-speed" type="range" min="100" max="2000" step="100" value="900" />
+        <span id="auto-speed-value">900 ms</span>
+      </label>
       <span id="status"></span>
+      <span id="config-source"></span>
+    </section>
+    <section class="settings">
+      <button class="settings-toggle" type="button">
+        <span>Live Settings</span>
+        <span class="chevron">▼</span>
+      </button>
+      <div class="settings-content">
+        <p class="settings-hint">
+          Adjust controls, then press <strong>Apply Settings</strong> to regenerate the trainer. Hover each label to see what it influences.
+        </p>
+      <div class="settings-groups">
+        <div class="settings-group">
+          <h3>Dataset</h3>
+          <div class="settings-grid">
+            <label title="Split rule: y = 1 when the sum of inputs exceeds this value.">
+              Threshold
+              <input id="dataset-threshold" type="number" step="0.1" data-type="float" />
+            </label>
+            <label title="Lowest value sampled for any input dimension. Wider ranges increase variability.">
+              Feature Min
+              <input id="dataset-feature_min" type="number" step="0.1" data-type="float" />
+            </label>
+            <label title="Highest value sampled for any input dimension.">
+              Feature Max
+              <input id="dataset-feature_max" type="number" step="0.1" data-type="float" />
+            </label>
+            <label title="Gaussian noise injected after sampling. Higher noise shakes up hidden representations.">
+              Noise σ
+              <input id="dataset-noise_std" type="number" step="0.05" data-type="float" />
+            </label>
+            <label title="How many training points to sample each epoch. Larger sets smooth the learning signal.">
+              Train Samples
+              <input id="dataset-num_train" type="number" step="128" data-type="int" />
+            </label>
+            <label title="Size of the evaluation set used for the right-hand metrics.">
+              Test Samples
+              <input id="dataset-num_test" type="number" step="128" data-type="int" />
+            </label>
+            <label title="Batch size drawn per optimisation step. Larger batches update more slowly but with lower variance.">
+              Batch Size
+              <input id="dataset-batch_size" type="number" step="16" data-type="int" />
+            </label>
+            <label title="Random seed for sampling. Change it to reshuffle the synthetic dataset.">
+              Seed
+              <input id="dataset-seed" type="number" step="1" data-type="int" />
+            </label>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h3>Mass Redistribution</h3>
+          <div class="settings-grid">
+            <label title="Blend factor for updating each neuron's mass distribution after a batch.">
+              Release Rate
+              <input id="trainer-release_rate" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="How strongly positive reward increases the neurotransmitter pool.">
+              Reward Gain
+              <input id="trainer-reward_gain" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="Baseline neurotransmitter released even when reward is neutral.">
+              Base Release
+              <input id="trainer-base_release" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="Fraction of mass depleted when a neuron fires often (homeostasis).">
+              Decay
+              <input id="trainer-decay" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="Softmax temperature for converting co-activity into a mass allocation.">
+              Temperature
+              <input id="trainer-temperature" type="number" step="0.05" data-type="float" />
+            </label>
+            <label title="Bonus allocation for neurons that stayed quiet yet the batch succeeded.">
+              Efficiency Bonus
+              <input id="trainer-efficiency_bonus" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="Penalty applied when multiple neurons chase the same input column.">
+              Column Competition
+              <input id="trainer-column_competition" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="Random exploration mixed into the allocation to break symmetry.">
+              Noise Std
+              <input id="trainer-noise_std" type="number" step="0.001" data-type="float" />
+            </label>
+            <label title="Per-neuron synaptic mass budget (L1 norm of each row).">
+              Mass Budget
+              <input id="trainer-mass_budget" type="number" step="0.2" data-type="float" />
+            </label>
+            <label title="Extra boost injected into the winning class when reward is positive.">
+              Target Gain
+              <input id="trainer-target_gain" type="number" step="0.05" data-type="float" />
+            </label>
+            <label title="Baseline propensity for each neuron to absorb transmitter along specific inputs.">
+              Affinity Strength
+              <input id="trainer-affinity_strength" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="How quickly the learned affinity decays toward new evidence.">
+              Affinity Decay
+              <input id="trainer-affinity_decay" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="Softmax temperature used when normalising affinity preferences.">
+              Affinity Temperature
+              <input id="trainer-affinity_temperature" type="number" step="0.05" data-type="float" />
+            </label>
+            <label title="Strength of the bias that keeps downstream signs aligned with upstream neurons.">
+              Sign Consistency
+              <input id="trainer-sign_consistency_strength" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="Momentum for the running estimate of neuron sign preferences.">
+              Sign Momentum
+              <input id="trainer-sign_consistency_momentum" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="How often (in steps) to refresh snapshots on the CPU for visualisation. Set 1 to capture every step.">
+              Snapshot Interval
+              <input id="trainer-snapshot_interval" type="number" step="1" min="1" data-type="int" />
+            </label>
+            <label title="Run full test-set evaluation every N steps to keep the UI responsive.">
+              Eval Interval
+              <input id="trainer-evaluate_interval" type="number" step="1" min="1" data-type="int" />
+            </label>
+            <label class="checkbox" title="Allow synapses to be inhibitory as well as excitatory.">
+              <input id="trainer-signed_weights" type="checkbox" />
+              <span>Signed weights</span>
+            </label>
+            <label class="checkbox" title="Modulate the winning class with reward so that success sharpens its pattern.">
+              <input id="trainer-use_target_bonus" type="checkbox" />
+              <span>Enable target bonus</span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h3>Spiking Layer</h3>
+          <div class="settings-grid">
+            <label title="Comma-separated hidden layer sizes, e.g. 12,8 for two layers.">
+              Hidden Layout
+              <input id="trainer-hidden_layers" type="text" data-type="list" placeholder="10" />
+            </label>
+            <label title="Subtracts from the pre-activation before the sigmoid spike function. Raises or lowers firing rates.">
+              Spike Threshold
+              <input id="trainer-spike_threshold" type="number" step="0.05" data-type="float" />
+            </label>
+            <label title="Controls the steepness of the spike sigmoid; lower values behave more like hard spikes.">
+              Spike Temperature
+              <input id="trainer-spike_temperature" type="number" step="0.05" data-type="float" />
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="settings-actions">
+        <button id="apply-btn" type="button">Apply Settings</button>
+      </div>
+      </div>
     </section>
     <main class="content">
-      <svg id="network" viewBox="0 0 800 480"></svg>
+      <div class="network-wrapper">
+        <svg id="network" viewBox="0 0 800 480"></svg>
+        <div class="legend">
+          <span class="chip positive"></span> Orange → positive weight (thicker = stronger)
+          <span class="chip negative"></span> Blue → negative weight (thicker = stronger)
+        </div>
+      </div>
       <div class="metrics">
         <div class="metric">
           <span class="label">Step</span>
@@ -48,22 +217,7 @@
         </div>
       </div>
     </main>
-    <section class="tables">
-      <div class="table-block">
-        <h2>Input → Hidden weights</h2>
-        <table id="encoder-table">
-          <thead></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="table-block">
-        <h2>Hidden → Output weights</h2>
-        <table id="decoder-table">
-          <thead></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
+    <section class="tables" id="weights-container"></section>
     <section class="sample">
       <h2>Last Batch Snapshot</h2>
       <div class="sample-grid">
@@ -79,6 +233,56 @@
           <h3>Hidden Spike Rates</h3>
           <pre id="spikes-view">-</pre>
         </div>
+      </div>
+    </section>
+    </section>
+    <section id="tab-learn" class="tab-panel hidden">
+      <div class="learn-grid">
+        <article class="learn-card">
+          <h2>Neurotransmitter Intuition</h2>
+          <p>
+            Every neuron owns a fixed neurotransmitter budget. After each batch we compute <code>r = 2·accuracy − 1</code> and release a pool:
+          </p>
+          <ul>
+            <li><strong>Success (&gt; 0):</strong> reinforce co-active synapses and also reward neurons that stayed quiet (efficiency).</li>
+            <li><strong>Failure (&lt; 0):</strong> divert transmitter to the neurons that fired the most so they can rewire.</li>
+            <li>Mass budgets and column competition stop every neuron from chasing the same inputs, so specialisation emerges.</li>
+          </ul>
+        </article>
+        <article class="learn-card">
+          <h2>Algorithm (Pseudo Code)</h2>
+          <pre><code>reward = 2 * batch_accuracy - 1
+release = max(base_release + reward_gain * reward, 0)
+
+for each layer with soft spikes S and inputs X:
+    coactivity = softmax((Sᵀ · X) / temperature)
+    efficiency = 1 + efficiency_bonus * (1 - normalise(spike_count))
+    column_penalty = column_competition * current_mass.sum(axis=rows)
+
+    signal = coactivity * efficiency - column_penalty
+    if release > 0: signal *= (1 + release)
+    if target bonus and reward > 0:
+        signal += target_gain * reward * class_specific_inputs
+    signal += noise_std * rand()
+
+    target_mass = normalise(signal)
+    mass = (1 - release_rate) * mass + release_rate * target_mass
+    mass *= (1 - decay * spike_fraction)
+    mass = renormalise(mass)
+    weights = mass_budget * (signed ? (2*mass - 1) : mass)</code></pre>
+        </article>
+        <article class="learn-card">
+          <h2>Knobs &amp; Behaviour</h2>
+          <ul>
+            <li><code>release_rate</code>, <code>reward_gain</code>, <code>base_release</code>: how strongly transmitter pools reshape the mass distribution.</li>
+            <li><code>decay</code>, <code>efficiency_bonus</code>: homeostasis rewarding quiet neurons and draining over-active ones.</li>
+            <li><code>column_competition</code>, <code>mass_budget</code>: enforce competition so different neurons claim different inputs.</li>
+            <li><code>noise_std</code>, <code>temperature</code>: exploration vs. exploitation when reallocating mass.</li>
+            <li><code>affinity_strength</code>/<code>decay</code>/<code>temperature</code>: persistent per-neuron appetite for specific inputs.</li>
+            <li><code>sign_consistency_strength</code>/<code>momentum</code>: encourage pathways to keep the same sign across layers.</li>
+            <li><code>target_gain</code>, <code>use_target_bonus</code>, <code>signed_weights</code>: reward-modulated shove and inhibitory/excitatory mix.</li>
+          </ul>
+        </article>
       </div>
     </section>
   </div>

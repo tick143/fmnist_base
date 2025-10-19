@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Tuple
+from typing import Any
 
 import torch
 import torch.nn.functional as F
@@ -10,59 +10,69 @@ from ..training.context import BatchContext
 
 
 class MassRedistributionBackwardStrategy(BackwardStrategy):
-    """Biologically inspired rule that redistributes synaptic mass without gradients."""
+    """Reward-modulated neurotransmitter flooding that reallocates synaptic mass without gradients."""
 
     def __init__(
         self,
-        base_lr: float = 0.1,
-        output_lr: float | None = None,
-        correct_scale: float = 0.3,
-        incorrect_scale: float = 1.0,
-        max_signal: float = 3.0,
-        redistribution_rate: float = 0.05,
-        focus_power: float = 1.5,
+        release_rate: float = 0.25,
+        reward_gain: float = 0.6,
+        base_release: float = 0.1,
+        decay: float = 0.05,
         temperature: float = 1.0,
-        min_signal: float = 0.5,
+        efficiency_bonus: float = 0.4,
+        column_competition: float = 0.3,
+        noise_std: float = 0.01,
+        mass_budget: float = 5.0,
+        signed_weights: bool = True,
+        enable_target_bonus: bool = True,
+        target_gain: float = 0.5,
+        affinity_strength: float = 0.1,
+        affinity_decay: float = 0.99,
+        affinity_temperature: float = 1.5,
+        sign_consistency_strength: float = 0.2,
+        sign_consistency_momentum: float = 0.9,
         **kwargs: Any,
     ) -> None:
-        super().__init__(
-            base_lr=base_lr,
-            output_lr=output_lr,
-            correct_scale=correct_scale,
-            incorrect_scale=incorrect_scale,
-            max_signal=max_signal,
-            redistribution_rate=redistribution_rate,
-            focus_power=focus_power,
-            temperature=temperature,
-            min_signal=min_signal,
-            **kwargs,
-        )
-        self.base_lr = base_lr
-        self.output_lr = output_lr if output_lr is not None else base_lr
-        self.correct_scale = correct_scale
-        self.incorrect_scale = incorrect_scale
-        self.max_signal = max_signal
-        self.min_signal = min_signal
-        self.redistribution_rate = redistribution_rate
-        self.focus_power = focus_power
-        self.temperature = temperature
+        super().__init__(**kwargs)
+        self.release_rate = float(release_rate)
+        self.reward_gain = float(reward_gain)
+        self.base_release = float(base_release)
+        self.decay = float(decay)
+        self.temperature = float(max(temperature, 1e-3))
+        self.efficiency_bonus = float(efficiency_bonus)
+        self.column_competition = float(column_competition)
+        self.noise_std = float(max(noise_std, 0.0))
+        self.mass_budget = float(mass_budget)
+        self.signed_weights = bool(signed_weights)
+        self.enable_target_bonus = bool(enable_target_bonus)
+        self.target_gain = float(target_gain)
+        self.affinity_strength = float(max(affinity_strength, 0.0))
+        self.affinity_decay = float(max(min(affinity_decay, 1.0), 0.0))
+        self.affinity_temperature = float(max(affinity_temperature, 1e-3))
+        self.sign_consistency_strength = float(max(sign_consistency_strength, 0.0))
+        self.sign_consistency_momentum = float(max(min(sign_consistency_momentum, 1.0), 0.0))
+
+        self._mass_buffers: dict[int, torch.Tensor] = {}
+        self._affinity_buffers: dict[int, torch.Tensor] = {}
+        self._sign_buffers: dict[int, torch.Tensor] = {}
         self.eps = 1e-8
 
     def backward(self, context: BatchContext) -> None:
         with torch.no_grad():
             predictions = context.outputs.argmax(dim=1)
             correct_mask = predictions.eq(context.targets)
-            scale = torch.where(
-                correct_mask,
-                torch.full((correct_mask.size(0),), self.correct_scale, device=context.outputs.device, dtype=context.outputs.dtype),
-                torch.full((correct_mask.size(0),), self.incorrect_scale, device=context.outputs.device, dtype=context.outputs.dtype),
-            )
+            accuracy = correct_mask.float().mean().item() if correct_mask.numel() > 0 else 0.0
+            reward = 2.0 * accuracy - 1.0
+            release = max(self.base_release + self.reward_gain * reward, 0.0)
 
-            mean_scale = scale.mean().item() if scale.numel() > 0 else 0.0
-            context.extras["mean_step_scale"] = mean_scale
+            context.extras["reward"] = reward
+            context.extras["release"] = release
 
-            module_count = 0
+            total_entropy = 0.0
             total_signal = 0.0
+            total_column_error = 0.0
+            module_count = 0
+            prev_neuron_sign: torch.Tensor | None = None
 
             for name, record in context.activations.items():
                 module = record.module
@@ -70,119 +80,165 @@ class MassRedistributionBackwardStrategy(BackwardStrategy):
                     continue
 
                 weight = module.weight
-                if weight.dim() not in (2, 4):
+                if weight is None or weight.dim() != 2:
                     continue
 
-                flat_weight, reshape_fn = self._flatten_weight(weight)
-
-                inputs, outputs = self._prepare_activations(module, record.inputs[0], record.output)
-
-                if inputs.numel() == 0 or outputs.numel() == 0:
+                inputs = record.inputs[0]
+                outputs = record.output
+                if inputs.dim() != 2 or outputs.dim() != 2:
                     continue
 
-                sample_scale = self._expand_scale(scale, outputs.size(0), record.output.shape)
-                scaled_outputs = outputs * sample_scale.unsqueeze(1)
-                coactivity = torch.matmul(scaled_outputs.T, inputs)
+                spikes = torch.sigmoid(outputs)
+                if spikes.numel() == 0 or inputs.numel() == 0:
+                    continue
 
-                if self._is_output_layer(module, record.output, context.outputs):
-                    self._update_output_layer(module, record.inputs[0], context)
+                module_key = id(module)
+                mass = self._initialise_mass(module_key, weight).to(weight.device, dtype=weight.dtype)
+                affinity = self._initialise_affinity(module_key, weight, mass).to(weight.device, dtype=weight.dtype)
+                sign_pref = self._initialise_sign(module_key, weight).to(weight.device, dtype=weight.dtype)
 
-                focused = torch.tanh(coactivity / (self.temperature + 1e-6))
-                signed_step = torch.sign(coactivity) * focused.abs().pow(self.focus_power)
+                # Activity-driven signals
+                coactivity = torch.relu(torch.matmul(spikes.T, inputs))
+                pattern = F.softmax(coactivity / self.temperature, dim=0)
 
-                lr = self.base_lr
-                new_weight = flat_weight + lr * signed_step
+                spike_counts = spikes.sum(dim=0)
+                if spike_counts.max().item() <= self.eps:
+                    efficiency = torch.ones_like(spike_counts)
+                else:
+                    efficiency = 1.0 - (spike_counts / (spike_counts.max() + self.eps))
+                efficiency = 1.0 + self.efficiency_bonus * efficiency
 
-                row_l1 = new_weight.abs().sum(dim=1, keepdim=True)
-                over = (row_l1 > self.max_signal).float()
-                shrink = (row_l1 - self.max_signal) / (row_l1 + self.eps)
-                new_weight = new_weight - over * shrink * new_weight
-                new_weight = torch.nan_to_num(new_weight, nan=0.0, posinf=self.max_signal, neginf=-self.max_signal)
+                column_pressure = self.column_competition * mass.sum(dim=0, keepdim=True)
 
-                module.weight.data.copy_(reshape_fn(new_weight))
+                alloc_signal = pattern * efficiency.unsqueeze(1)
+                alloc_signal = alloc_signal - column_pressure
+                if release > 0.0:
+                    alloc_signal = alloc_signal * (1.0 + release)
+                if self.affinity_strength > 0.0:
+                    alloc_signal = alloc_signal + self.affinity_strength * affinity
+                if (
+                    self.sign_consistency_strength > 0.0
+                    and prev_neuron_sign is not None
+                    and prev_neuron_sign.numel() == weight.size(1)
+                ):
+                    column_sign = prev_neuron_sign.to(weight.device, dtype=weight.dtype).unsqueeze(0)
+                    alloc_signal = alloc_signal + self.sign_consistency_strength * column_sign
 
-                if module.weight.grad is not None:
-                    module.weight.grad = None
-                if module.bias is not None and module.bias.grad is not None:
-                    module.bias.grad = None
+                if self.enable_target_bonus and reward > 0.0 and mass.size(0) == context.outputs.size(1):
+                    bonus = torch.zeros_like(alloc_signal)
+                    for cls_idx in range(context.outputs.size(1)):
+                        class_mask = context.targets == cls_idx
+                        if class_mask.any():
+                            class_inputs = inputs[class_mask]
+                            signal = class_inputs.sum(dim=0).abs()
+                            if signal.sum().item() > self.eps:
+                                signal = signal / (signal.sum() + self.eps)
+                                bonus[cls_idx] = signal
+                    alloc_signal = alloc_signal + self.target_gain * reward * bonus
 
-                context.extras.setdefault("mass_entropy", 0.0)
-                abs_alloc = new_weight.abs() / (new_weight.abs().sum(dim=1, keepdim=True) + self.eps)
-                entropy = -(abs_alloc * torch.log(abs_alloc + self.eps)).sum(dim=1).mean().item()
-                context.extras["mass_entropy"] += entropy
-                total_signal += row_l1.mean().item()
+                if self.noise_std > 0.0:
+                    alloc_signal = alloc_signal + self.noise_std * torch.rand_like(alloc_signal)
+
+                alloc_signal = alloc_signal.clamp_min(self.eps)
+                alloc_signal = alloc_signal / alloc_signal.sum(dim=0, keepdim=True).clamp_min(self.eps)
+
+                mass = (1.0 - self.release_rate) * mass + self.release_rate * alloc_signal
+
+                decay_factor = 1.0 - self.decay * (spike_counts / (spikes.size(0) + self.eps))
+                decay_factor = decay_factor.clamp(min=0.0).unsqueeze(1)
+                mass = mass * decay_factor
+
+                mass = mass.clamp_min(self.eps)
+                mass = mass / mass.sum(dim=0, keepdim=True).clamp_min(self.eps)
+
+                self._mass_buffers[module_key] = mass.detach().cpu()
+
+                if self.signed_weights:
+                    sign_unit = torch.sign(sign_pref)
+                    sign_unit[sign_unit == 0] = 1.0
+                    new_weight = self.mass_budget * mass * sign_unit
+                else:
+                    new_weight = self.mass_budget * mass
+                module.weight.data.copy_(new_weight)
+
+                if self.affinity_strength > 0.0:
+                    updated_affinity = self.affinity_decay * affinity + (1.0 - self.affinity_decay) * mass
+                    updated_affinity = F.softmax(updated_affinity / self.affinity_temperature, dim=0)
+                    self._affinity_buffers[module_key] = updated_affinity.detach().cpu()
+
+                if self.signed_weights:
+                    observed_sign = torch.sign(new_weight + self.eps)
+                    updated_sign = (
+                        self.sign_consistency_momentum * sign_pref
+                        + (1.0 - self.sign_consistency_momentum) * observed_sign
+                    )
+                    updated_sign = torch.tanh(updated_sign)
+                    self._sign_buffers[module_key] = updated_sign.detach().cpu()
+                    row_sign = updated_sign.mean(dim=1)
+                else:
+                    row_sign = torch.ones(weight.size(0), device=weight.device, dtype=weight.dtype)
+
+                if module.bias is not None:
+                    module.bias.data.mul_(1.0 - self.decay)
+
+                module_entropy = -(mass * torch.log(mass + self.eps)).sum(dim=1).mean().item()
+                total_entropy += module_entropy
+                total_signal += new_weight.abs().sum().item() / max(new_weight.size(0), 1)
+                column_mass = new_weight.abs().sum(dim=0)
+                total_column_error += (column_mass - self.mass_budget).abs().mean().item()
+
+                if prev_neuron_sign is None or prev_neuron_sign.numel() != row_sign.numel():
+                    prev_neuron_sign = row_sign.detach().cpu()
+                else:
+                    blended_sign = (
+                        self.sign_consistency_momentum * prev_neuron_sign.to(row_sign.device)
+                        + (1.0 - self.sign_consistency_momentum) * row_sign
+                    )
+                    prev_neuron_sign = blended_sign.detach().cpu()
 
                 module_count += 1
 
-            if module_count > 0 and "mass_entropy" in context.extras:
-                context.extras["mass_entropy"] /= module_count
-                context.extras["modules_tracked"] = float(module_count)
+            if module_count > 0:
+                context.extras["mass_entropy"] = total_entropy / module_count
                 context.extras["avg_signal"] = total_signal / module_count
+                context.extras["modules_tracked"] = float(module_count)
+                context.extras["column_budget_error"] = total_column_error / module_count
 
-    def _prepare_activations(
-        self,
-        module: torch.nn.Module,
-        inputs: torch.Tensor,
-        outputs: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        if inputs.dim() == 2 and outputs.dim() == 2:
-            return inputs, outputs
+    def _initialise_mass(self, module_key: int, weight: torch.Tensor) -> torch.Tensor:
+        if module_key in self._mass_buffers and self._mass_buffers[module_key].shape == weight.shape:
+            return self._mass_buffers[module_key]
 
-        if inputs.dim() == 4 and outputs.dim() == 4:
-            batch_size = inputs.size(0)
-            unfold = F.unfold(
-                inputs,
-                kernel_size=module.kernel_size,
-                dilation=module.dilation,
-                padding=module.padding,
-                stride=module.stride,
-            )
-            patches = unfold.transpose(1, 2).reshape(-1, unfold.size(1))
-            out_flat = outputs.view(batch_size, outputs.size(1), -1).transpose(1, 2).reshape(-1, outputs.size(1))
-            return patches, out_flat
+        abs_weight = weight.detach().cpu().abs()
+        if abs_weight.sum().item() <= self.eps:
+            abs_weight = torch.rand_like(abs_weight)
+        mass = abs_weight.clamp_min(self.eps)
+        column_totals = mass.sum(dim=0, keepdim=True)
+        column_totals[column_totals <= self.eps] = 1.0
+        mass = mass / column_totals
+        self._mass_buffers[module_key] = mass
+        return mass
 
-        raise ValueError("Unsupported activation shapes for mass redistribution strategy")
+    def _initialise_affinity(self, module_key: int, weight: torch.Tensor, mass: torch.Tensor) -> torch.Tensor:
+        if module_key in self._affinity_buffers and self._affinity_buffers[module_key].shape == weight.shape:
+            return self._affinity_buffers[module_key]
 
-    def _expand_scale(self, scale: torch.Tensor, expanded_size: int, original_output_shape: torch.Size) -> torch.Tensor:
-        if expanded_size == scale.size(0):
-            return scale
+        mass_cpu = mass.detach().cpu()
+        prior = torch.rand_like(mass_cpu)
+        prior = prior.clamp_min(self.eps)
+        prior = prior / prior.sum(dim=0, keepdim=True).clamp_min(self.eps)
+        combined = 0.5 * prior + 0.5 * mass_cpu
+        combined = combined / combined.sum(dim=0, keepdim=True).clamp_min(self.eps)
+        self._affinity_buffers[module_key] = combined
+        return combined
 
-        batch_size = scale.size(0)
-        if len(original_output_shape) == 4:
-            spatial_locs = original_output_shape[2] * original_output_shape[3]
-            return scale.repeat_interleave(spatial_locs)
+    def _initialise_sign(self, module_key: int, weight: torch.Tensor) -> torch.Tensor:
+        if module_key in self._sign_buffers and self._sign_buffers[module_key].shape == weight.shape:
+            return self._sign_buffers[module_key]
 
-        raise ValueError("Cannot expand scale for the given output shape")
-
-    def _flatten_weight(self, weight: torch.Tensor) -> tuple[torch.Tensor, Callable[[torch.Tensor], torch.Tensor]]:
-        if weight.dim() == 2:
-            return weight.view(weight.size(0), -1), lambda w: w.view_as(weight)
-        if weight.dim() == 4:
-            shape = weight.shape
-            return weight.view(shape[0], -1), lambda w: w.view(shape)
-        raise ValueError("Unsupported weight dimensionality for mass redistribution strategy")
-
-    def _is_output_layer(
-        self,
-        module: torch.nn.Module,
-        hook_output: torch.Tensor,
-        model_output: torch.Tensor,
-    ) -> bool:
-        if not isinstance(module, torch.nn.Linear):
-            return False
-        return hook_output.shape == model_output.shape
-
-    def _update_output_layer(
-        self,
-        module: torch.nn.Module,
-        inputs: torch.Tensor,
-        context: BatchContext,
-    ) -> None:
-        with torch.no_grad():
-            probs = F.softmax(context.outputs.detach(), dim=1)
-            targets = torch.nn.functional.one_hot(context.targets, num_classes=probs.size(1)).to(probs.dtype)
-            error = targets - probs
-            delta = (error.T @ inputs) / inputs.size(0)
-            module.weight.data.add_(self.output_lr * delta)
-            if module.bias is not None:
-                module.bias.data.add_(self.output_lr * error.mean(dim=0))
+        if weight.numel() == 0:
+            sign = torch.ones_like(weight)
+        else:
+            sign = torch.sign(weight.detach().cpu())
+            sign[sign == 0] = 1.0
+        self._sign_buffers[module_key] = sign
+        return sign

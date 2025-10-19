@@ -1,42 +1,52 @@
 training:
-  epochs: 10
-  batch_size: 32
-  log_interval: 5
-  device: cpu
-  seed: 7
+  epochs: 12
+  batch_size: 64
+  log_interval: 4
+  device: cuda
+  seed: 13
   num_workers: 0
 
 dataset:
   target: alt_back.data.synthetic.create_dataloaders
   params:
     num_features: 5
-    threshold: 2.5
-    num_train: 1024
-    num_test: 512
-    batch_size: 32
+    threshold: 1.0
+    feature_min: -1.5
+    feature_max: 2.5
+    noise_std: 0.25
+    num_train: 4096
+    num_test: 1024
+    batch_size: 64
     shuffle: true
+    seed: 13
 
 model:
   target: alt_back.models.spiking.TinySpikingNetwork
   params:
     input_neurons: 5
-    hidden_neurons: 10
+    hidden_layers: [12, 8]
     output_neurons: 2
-    spike_threshold: 0.0
-    spike_temperature: 0.75
+    spike_threshold: 0.1
+    spike_temperature: 0.3
 
 backward:
   target: alt_back.backward.mass_redistribution.MassRedistributionBackwardStrategy
   params:
-    base_lr: 0.1
-    output_lr: 0.1
-    correct_scale: 0.4
-    incorrect_scale: 1.0
-    focus_power: 1.5
+    release_rate: 0.2
+    reward_gain: 2
+    base_release: 0.0
+    decay: 0.1
     temperature: 1.0
-    max_signal: 3.0
-    redistribution_rate: 0.05
-    min_signal: 0.5
+    efficiency_bonus: 0.1
+    column_competition: 0.01
+    noise_std: 0.2
+    mass_budget: 5.0
+    signed_weights: true
+    enable_target_bonus: true
+    target_gain: 0.5
+    affinity_strength: 0.15
+    affinity_decay: 0.99
+    affinity_temperature: 1.5
 
 optimizer:
   target: alt_back.optim.torch_optimizer.TorchOptimizerStrategy

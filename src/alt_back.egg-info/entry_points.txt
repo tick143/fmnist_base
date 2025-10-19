@@ -1,2 +1,3 @@
 [console_scripts]
 alt-back-train = alt_back.cli:main
+alt-back-viz = alt_back.visualization.runner:main

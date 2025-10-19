@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Tiny Spiking Playground</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Tiny Spiking Playground</h1>
+      <p>Interactively inspect how mass redistribution updates the weights of a 5-10-2 spiking network.</p>
+    </header>
+    <section class="controls">
+      <div class="button-row">
+        <button id="step-btn">Single Step</button>
+        <button id="auto-btn" data-running="false">Auto Step</button>
+        <button id="reset-btn">Reset</button>
+      </div>
+      <label for="seed-input">
+        Seed:
+        <input id="seed-input" type="number" placeholder="Optional" />
+      </label>
+      <span id="status"></span>
+    </section>
+    <main class="content">
+      <svg id="network" viewBox="0 0 800 480"></svg>
+      <div class="metrics">
+        <div class="metric">
+          <span class="label">Step</span>
+          <span class="value" id="metric-step">-</span>
+        </div>
+        <div class="metric">
+          <span class="label">Loss</span>
+          <span class="value" id="metric-loss">-</span>
+        </div>
+        <div class="metric">
+          <span class="label">Batch Acc</span>
+          <span class="value" id="metric-acc">-</span>
+        </div>
+        <div class="metric">
+          <span class="label">Eval Acc</span>
+          <span class="value" id="metric-eval">-</span>
+        </div>
+        <div class="metric">
+          <span class="label">Extras</span>
+          <ul id="extras-list"></ul>
+        </div>
+      </div>
+    </main>
+    <section class="tables">
+      <div class="table-block">
+        <h2>Input → Hidden weights</h2>
+        <table id="encoder-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="table-block">
+        <h2>Hidden → Output weights</h2>
+        <table id="decoder-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="sample">
+      <h2>Last Batch Snapshot</h2>
+      <div class="sample-grid">
+        <div>
+          <h3>Inputs</h3>
+          <pre id="inputs-view">(run a step)</pre>
+        </div>
+        <div>
+          <h3>Predictions</h3>
+          <pre id="predictions-view">-</pre>
+        </div>
+        <div>
+          <h3>Hidden Spike Rates</h3>
+          <pre id="spikes-view">-</pre>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>

@@ -16,9 +16,11 @@ src/alt_back/backward/cofire.py
 src/alt_back/backward/mass_redistribution.py
 src/alt_back/data/__init__.py
 src/alt_back/data/fashion.py
+src/alt_back/data/synthetic.py
 src/alt_back/models/__init__.py
 src/alt_back/models/mlp.py
 src/alt_back/models/simple.py
+src/alt_back/models/spiking.py
 src/alt_back/optim/__init__.py
 src/alt_back/optim/base.py
 src/alt_back/optim/null_optimizer.py
@@ -31,3 +33,7 @@ src/alt_back/training/train.py
 src/alt_back/utils/activations.py
 src/alt_back/utils/imports.py
 src/alt_back/utils/logging.py
+src/alt_back/visualization/__init__.py
+src/alt_back/visualization/runner.py
+src/alt_back/visualization/server.py
+src/alt_back/visualization/trainer.py

@@ -33,6 +33,16 @@ To experiment with the loss-free mass redistribution strategy that reallocates s
 alt-back-train --config configs/mass_redistribution.yaml
 ```
 
+### Tiny spiking playground
+
+For a lightweight, synthetic demo that highlights how the mass-redistribution rule manipulates weights step-by-step, launch the interactive visualiser:
+
+```bash
+alt-back-viz --port 8000
+```
+
+This spins up a FastAPI server with a 5-10-2 spiking network trained on a balanced synthetic dataset (`y = 1` when `sum(x) > 2.5`). The web UI exposes single-step and auto-stepping controls, live topology visualisation, per-synapse deltas, spike-rate heatmaps, and running evaluation metrics.
+
 ### Configuration
 
 All pluggable components are configured in YAML:

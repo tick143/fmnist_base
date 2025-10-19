@@ -9,10 +9,13 @@ dependencies = [
     "torchvision>=0.17.0",
     "pyyaml>=6.0",
     "wandb>=0.16",
+    "fastapi>=0.110",
+    "uvicorn>=0.24",
 ]
 
 [project.scripts]
 alt-back-train = "alt_back.cli:main"
+alt-back-viz = "alt_back.visualization.runner:main"
 
 [tool.uv]
 index-url = "https://pypi.org/simple"

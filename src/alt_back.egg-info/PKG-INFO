@@ -8,6 +8,8 @@ Requires-Dist: torch>=2.2.0
 Requires-Dist: torchvision>=0.17.0
 Requires-Dist: pyyaml>=6.0
 Requires-Dist: wandb>=0.16
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn>=0.24
 
 ## alt-back
 
@@ -43,6 +45,16 @@ To experiment with the loss-free mass redistribution strategy that reallocates s
 ```bash
 alt-back-train --config configs/mass_redistribution.yaml
 ```
+
+### Tiny spiking playground
+
+For a lightweight, synthetic demo that highlights how the mass-redistribution rule manipulates weights step-by-step, launch the interactive visualiser:
+
+```bash
+alt-back-viz --port 8000
+```
+
+This spins up a FastAPI server with a 5-10-2 spiking network trained on a balanced synthetic dataset (`y = 1` when `sum(x) > 2.5`). The web UI exposes single-step and auto-stepping controls, live topology visualisation, per-synapse deltas, spike-rate heatmaps, and running evaluation metrics.
 
 ### Configuration
 

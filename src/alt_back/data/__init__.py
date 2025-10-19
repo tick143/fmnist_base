@@ -1,4 +1,5 @@
 """Dataset utilities."""
 
-__all__ = ["fashion"]
+from . import fashion, synthetic
 
+__all__ = ["fashion", "synthetic"]

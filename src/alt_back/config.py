@@ -18,6 +18,8 @@ class DatasetConfig:
     root: str = "./data"
     download: bool = True
     augmentations: dict[str, Any] = field(default_factory=dict)
+    target: str | None = None
+    params: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

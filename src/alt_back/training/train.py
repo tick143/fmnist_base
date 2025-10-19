@@ -48,7 +48,15 @@ def train(config: Config) -> tuple[list[EpochStats], list[EpochStats]]:
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(config.training.seed)
 
-    train_loader, test_loader = fashion.dataloaders(config.dataset, config.training)
+    if config.dataset.target:
+        dataloader_factory = import_from_string(config.dataset.target)
+        factory_args = dict(config.dataset.params)
+        factory_args.setdefault("batch_size", config.training.batch_size)
+        factory_args.setdefault("num_workers", config.training.num_workers)
+        factory_args.setdefault("seed", config.training.seed or 0)
+        train_loader, test_loader = dataloader_factory(factory_args)
+    else:
+        train_loader, test_loader = fashion.dataloaders(config.dataset, config.training)
 
     model = instantiate_component(config.model)
     model.to(device)

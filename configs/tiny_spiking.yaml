@@ -1,0 +1,48 @@
+training:
+  epochs: 10
+  batch_size: 32
+  log_interval: 5
+  device: cpu
+  seed: 7
+  num_workers: 0
+
+dataset:
+  target: alt_back.data.synthetic.create_dataloaders
+  params:
+    num_features: 5
+    threshold: 2.5
+    num_train: 1024
+    num_test: 512
+    batch_size: 32
+    shuffle: true
+
+model:
+  target: alt_back.models.spiking.TinySpikingNetwork
+  params:
+    input_neurons: 5
+    hidden_neurons: 10
+    output_neurons: 2
+    spike_threshold: 0.0
+    spike_temperature: 0.75
+
+backward:
+  target: alt_back.backward.mass_redistribution.MassRedistributionBackwardStrategy
+  params:
+    base_lr: 0.1
+    output_lr: 0.1
+    correct_scale: 0.4
+    incorrect_scale: 1.0
+    focus_power: 1.5
+    temperature: 1.0
+    max_signal: 3.0
+    redistribution_rate: 0.05
+    min_signal: 0.5
+
+optimizer:
+  target: alt_back.optim.torch_optimizer.TorchOptimizerStrategy
+  params:
+    optimizer_class: torch.optim.SGD
+    lr: 0.0
+
+logging:
+  enabled: false

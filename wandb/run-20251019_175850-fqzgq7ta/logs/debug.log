@@ -1,0 +1,26 @@
+2025-10-19 17:58:50,787 INFO    MainThread:18573 [wandb_setup.py:_flush():81] Current SDK version is 0.22.2
+2025-10-19 17:58:50,787 INFO    MainThread:18573 [wandb_setup.py:_flush():81] Configure stats pid to 18573
+2025-10-19 17:58:50,787 INFO    MainThread:18573 [wandb_setup.py:_flush():81] Loading settings from /Users/danburke-ward/.config/wandb/settings
+2025-10-19 17:58:50,787 INFO    MainThread:18573 [wandb_setup.py:_flush():81] Loading settings from /Users/danburke-ward/Outside/alt_back/wandb/settings
+2025-10-19 17:58:50,788 INFO    MainThread:18573 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2025-10-19 17:58:50,788 INFO    MainThread:18573 [wandb_init.py:setup_run_log_directory():705] Logging user logs to /Users/danburke-ward/Outside/alt_back/wandb/run-20251019_175850-fqzgq7ta/logs/debug.log
+2025-10-19 17:58:50,788 INFO    MainThread:18573 [wandb_init.py:setup_run_log_directory():706] Logging internal logs to /Users/danburke-ward/Outside/alt_back/wandb/run-20251019_175850-fqzgq7ta/logs/debug-internal.log
+2025-10-19 17:58:50,788 INFO    MainThread:18573 [wandb_init.py:init():832] calling init triggers
+2025-10-19 17:58:50,788 INFO    MainThread:18573 [wandb_init.py:init():837] wandb.init called with sweep_config: {}
+config: {'training': {'epochs': 5, 'batch_size': 128, 'log_interval': 100, 'device': 'auto', 'seed': 42, 'num_workers': 2}, 'dataset': {'root': './data', 'download': True, 'augmentations': {}}, 'model': {'target': 'alt_back.models.simple.SimpleFashionCNN', 'params': {}}, 'backward': {'target': 'alt_back.backward.mass_redistribution.MassRedistributionBackwardStrategy', 'params': {'base_lr': 0.2, 'correct_scale': 0.25, 'incorrect_scale': 1.0, 'max_signal': 2.5, 'redistribution_rate': 0.1, 'focus_power': 1.6, 'min_signal': 0.2}}, 'optimizer': {'target': 'alt_back.optim.null_optimizer.NullOptimizerStrategy', 'params': {'optimizer_class': 'torch.optim.Adam', 'lr': 0.001}}, '_wandb': {}}
+2025-10-19 17:58:50,788 INFO    MainThread:18573 [wandb_init.py:init():880] starting backend
+2025-10-19 17:58:51,018 INFO    MainThread:18573 [wandb_init.py:init():883] sending inform_init request
+2025-10-19 17:58:51,042 INFO    MainThread:18573 [wandb_init.py:init():891] backend started and connected
+2025-10-19 17:58:51,045 INFO    MainThread:18573 [wandb_init.py:init():961] updated telemetry
+2025-10-19 17:58:51,047 INFO    MainThread:18573 [wandb_init.py:init():985] communicating run to backend with 90.0 second timeout
+2025-10-19 17:58:51,576 INFO    MainThread:18573 [wandb_init.py:init():1036] starting run threads in backend
+2025-10-19 17:58:51,597 INFO    MainThread:18573 [wandb_run.py:_console_start():2509] atexit reg
+2025-10-19 17:58:51,598 INFO    MainThread:18573 [wandb_run.py:_redirect():2357] redirect: wrap_raw
+2025-10-19 17:58:51,598 INFO    MainThread:18573 [wandb_run.py:_redirect():2426] Wrapping output streams.
+2025-10-19 17:58:51,598 INFO    MainThread:18573 [wandb_run.py:_redirect():2449] Redirects installed.
+2025-10-19 17:58:51,601 INFO    MainThread:18573 [wandb_init.py:init():1076] run started, returning control to user process
+2025-10-19 17:58:54,352 INFO    MainThread:18573 [wandb_run.py:_finish():2275] finishing run tick143-n-/alt-back/fqzgq7ta
+2025-10-19 17:58:54,356 INFO    MainThread:18573 [wandb_run.py:_atexit_cleanup():2474] got exitcode: 0
+2025-10-19 17:58:54,356 INFO    MainThread:18573 [wandb_run.py:_restore():2456] restore
+2025-10-19 17:58:54,357 INFO    MainThread:18573 [wandb_run.py:_restore():2462] restore done
+2025-10-19 17:58:55,291 INFO    MainThread:18573 [wandb_run.py:_footer_sync_info():3872] logging synced files

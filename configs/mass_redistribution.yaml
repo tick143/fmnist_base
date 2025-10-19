@@ -1,0 +1,36 @@
+training:
+  epochs: 5
+  batch_size: 128
+  log_interval: 100
+  device: auto
+  seed: 42
+
+dataset:
+  root: ./data
+  download: true
+
+model:
+  target: alt_back.models.simple.SimpleFashionCNN
+
+backward:
+  target: alt_back.backward.mass_redistribution.MassRedistributionBackwardStrategy
+  params:
+    base_lr: 2
+    correct_scale: 0.25
+    incorrect_scale: 1.0
+    max_signal: 5
+    redistribution_rate: 0.1
+    focus_power: 1.6
+    min_signal: 0.2
+
+optimizer:
+  target: alt_back.optim.null_optimizer.NullOptimizerStrategy
+
+logging:
+  enabled: true
+  project: alt-back
+  run_name: mass-redistribution-demo
+  tags: ["mass-redistribution", "bio"]
+  log_logits: true
+  log_probabilities: true
+  log_entropies: true

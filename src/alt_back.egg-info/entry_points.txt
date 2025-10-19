@@ -1,0 +1,2 @@
+[console_scripts]
+alt-back-train = alt_back.cli:main

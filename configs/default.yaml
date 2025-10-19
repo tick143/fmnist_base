@@ -1,0 +1,42 @@
+training:
+  epochs: 3
+  batch_size: 128
+  log_interval: 100
+  device: auto
+  seed: 42
+  num_workers: 4
+
+dataset:
+  root: ./data
+  download: true
+  augmentations:
+    random_rotation: 10
+    normalize:
+      mean: [0.5]
+      std: [0.5]
+
+model:
+  target: alt_back.models.simple.SimpleFashionCNN
+  params:
+    conv_channels: [32, 64]
+    fc_hidden: 128
+    dropout: 0.3
+
+backward:
+  target: alt_back.backward.autograd.AutogradBackwardStrategy
+  params:
+    retain_graph: false
+
+optimizer:
+  target: alt_back.optim.torch_optimizer.TorchOptimizerStrategy
+  params:
+    optimizer_class: torch.optim.Adam
+    lr: 0.001
+
+logging:
+  enabled: false
+  project: alt-back
+  tags: ["baseline"]
+  log_logits: true
+  log_probabilities: true
+  log_entropies: true

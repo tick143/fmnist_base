@@ -1,0 +1,25 @@
+[project]
+name = "alt-back"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.2.0",
+    "torchvision>=0.17.0",
+    "pyyaml>=6.0",
+    "wandb>=0.16",
+]
+
+[project.scripts]
+alt-back-train = "alt_back.cli:main"
+
+[tool.uv]
+index-url = "https://pypi.org/simple"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"

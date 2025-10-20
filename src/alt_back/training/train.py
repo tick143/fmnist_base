@@ -83,6 +83,10 @@ def train(config: Config) -> tuple[list[EpochStats], list[EpochStats]]:
     try:
         for epoch in range(1, config.training.epochs + 1):
             print(f"\nEpoch {epoch}/{config.training.epochs} -> device={device}")
+
+            # Re-create backward strategy for each epoch to reset its state
+            backward_strategy = instantiate_component(config.backward)
+
             train_stats, global_step = train_one_epoch(
                 model=model,
                 dataloader=train_loader,

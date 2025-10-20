@@ -1,4 +1,0 @@
-
-Epoch 1/5 -> device=mps
-/Users/danburke-ward/Outside/alt_back/.venv/lib/python3.11/site-packages/torch/utils/data/dataloader.py:692: UserWarning: 'pin_memory' argument is set as true but not supported on MPS now, device pinned memory won't be used.
-  warnings.warn(warn_msg)

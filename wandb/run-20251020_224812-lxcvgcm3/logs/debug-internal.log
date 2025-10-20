@@ -1,6 +1,0 @@
-{"time":"2025-10-20T22:48:12.706057+02:00","level":"INFO","msg":"stream: starting","core version":"0.22.2"}
-{"time":"2025-10-20T22:48:13.149978+02:00","level":"INFO","msg":"stream: created new stream","id":"lxcvgcm3"}
-{"time":"2025-10-20T22:48:13.150141+02:00","level":"INFO","msg":"handler: started","stream_id":"lxcvgcm3"}
-{"time":"2025-10-20T22:48:13.150286+02:00","level":"INFO","msg":"stream: started","id":"lxcvgcm3"}
-{"time":"2025-10-20T22:48:13.150325+02:00","level":"INFO","msg":"writer: started","stream_id":"lxcvgcm3"}
-{"time":"2025-10-20T22:48:13.150434+02:00","level":"INFO","msg":"sender: started","stream_id":"lxcvgcm3"}

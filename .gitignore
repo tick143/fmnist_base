@@ -1,3 +1,18 @@
-wandb/run-20251019_180524-imiuskqw/run-imiuskqw.wandb
-wandb
+# Weights & Biases artifacts
 wandb/
+**/wandb/
+*.wandb
+wandb-*.log
+debug.log
+debug-internal.log
+debug-core.log
+
+# Common temp/outputs
+*.tmp
+*.log
+*.out
+*.err
+
+# Local virtualenvs
+.venv/
+venv/

@@ -61,6 +61,14 @@ def train(config: Config) -> tuple[list[EpochStats], list[EpochStats]]:
     model = instantiate_component(config.model)
     model.to(device)
 
+    def _init_weights(module: torch.nn.Module) -> None:
+        if isinstance(module, torch.nn.Linear):
+            torch.nn.init.xavier_uniform_(module.weight)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+
+    model.apply(_init_weights)
+
     backward_strategy = instantiate_component(config.backward)
     optimizer_strategy = instantiate_component(config.optimizer)
     optimizer_strategy.setup(model=model)

@@ -385,6 +385,7 @@ class TinySpikingTrainer:
 
         loss_avg = loss_total / max(count, 1)
         accuracy = correct / max(count, 1) * 100.0
+        print(f"[evaluate] test_loss={loss_avg:.4f} acc={accuracy:.2f}%")
         return {"loss": float(loss_avg), "accuracy": float(accuracy)}
 
     def topology(self) -> Dict[str, Any]:

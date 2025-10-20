@@ -39,16 +39,14 @@ def train_one_epoch(
     running_loss = 0.0
     correct = 0
     total = 0
-    recorder = ActivationRecorder(model)
 
-    try:
-        for batch_idx, (inputs, targets) in enumerate(dataloader):
-            inputs, targets = inputs.to(device), targets.to(device)
+    for batch_idx, (inputs, targets) in enumerate(dataloader):
+        inputs, targets = inputs.to(device), targets.to(device)
 
-            optimizer_strategy.zero_grad(model=model)
-            backward_strategy.zero_grad(model=model)
+        optimizer_strategy.zero_grad(model=model)
+        backward_strategy.zero_grad(model=model)
 
-            recorder.clear()
+        with ActivationRecorder(model) as recorder:
             outputs = model(inputs)
             loss = loss_fn(outputs, targets)
 
@@ -69,49 +67,47 @@ def train_one_epoch(
             # optimizer step after gradients are populated
             optimizer_strategy.step(context)
 
-            running_loss += loss.item() * inputs.size(0)
-            preds = outputs.argmax(dim=1)
-            correct += preds.eq(targets).sum().item()
-            total += targets.size(0)
+        running_loss += loss.item() * inputs.size(0)
+        preds = outputs.argmax(dim=1)
+        correct += preds.eq(targets).sum().item()
+        total += targets.size(0)
 
-            if logger is not None and logger.enabled:
-                probs = F.softmax(outputs.detach(), dim=1)
-                pred_metrics = compute_prediction_metrics(outputs.detach())
-                layer_entropies, network_entropy = compute_activation_entropies(context.activations)
+        if logger is not None and logger.enabled:
+            probs = F.softmax(outputs.detach(), dim=1)
+            pred_metrics = compute_prediction_metrics(outputs.detach())
+            layer_entropies, network_entropy = compute_activation_entropies(context.activations)
 
-                log_payload = {
-                    "train/loss": loss.item(),
-                    "train/accuracy": preds.eq(targets).float().mean().item() * 100,
-                    "train/prediction_entropy": pred_metrics["entropy"],
-                    "train/network_entropy": network_entropy,
-                }
+            log_payload = {
+                "train/loss": loss.item(),
+                "train/accuracy": preds.eq(targets).float().mean().item() * 100,
+                "train/prediction_entropy": pred_metrics["entropy"],
+                "train/network_entropy": network_entropy,
+            }
 
-                if wandb_cfg is None or wandb_cfg.log_logits:
-                    log_payload["train/logits/mean"] = outputs.detach().mean().item()
-                    log_payload["train/logits/std"] = outputs.detach().std().item()
+            if wandb_cfg is None or wandb_cfg.log_logits:
+                log_payload["train/logits/mean"] = outputs.detach().mean().item()
+                log_payload["train/logits/std"] = outputs.detach().std().item()
 
-                if wandb_cfg is None or wandb_cfg.log_probabilities:
-                    log_payload["train/probabilities/mean"] = probs.mean().item()
-                    log_payload["train/probabilities/std"] = probs.std().item()
+            if wandb_cfg is None or wandb_cfg.log_probabilities:
+                log_payload["train/probabilities/mean"] = probs.mean().item()
+                log_payload["train/probabilities/std"] = probs.std().item()
 
-                if wandb_cfg is None or wandb_cfg.log_entropies:
-                    for layer_name, entropy_value in layer_entropies.items():
-                        sanitized = layer_name.replace(".", "/")
-                        log_payload[f"train/layer_entropy/{sanitized}"] = entropy_value
+            if wandb_cfg is None or wandb_cfg.log_entropies:
+                for layer_name, entropy_value in layer_entropies.items():
+                    sanitized = layer_name.replace(".", "/")
+                    log_payload[f"train/layer_entropy/{sanitized}"] = entropy_value
 
-                for extra_key, extra_value in context.extras.items():
-                    log_payload[f"train/{extra_key}"] = extra_value
+            for extra_key, extra_value in context.extras.items():
+                log_payload[f"train/{extra_key}"] = extra_value
 
-                logger.log(log_payload, step=global_step)
+            logger.log(log_payload, step=global_step)
 
-            global_step += 1
+        global_step += 1
 
-            if log_interval and (batch_idx + 1) % log_interval == 0:
-                avg_loss = running_loss / total
-                accuracy = correct / total * 100
-                print(f"[train] batch {batch_idx + 1}/{len(dataloader)} loss={avg_loss:.4f} acc={accuracy:.2f}%")
-    finally:
-        recorder.close()
+        if log_interval and (batch_idx + 1) % log_interval == 0:
+            avg_loss = running_loss / total
+            accuracy = correct / total * 100
+            print(f"[train] batch {batch_idx + 1}/{len(dataloader)} loss={avg_loss:.4f} acc={accuracy:.2f}%")
 
     avg_loss = running_loss / total
     accuracy = correct / total * 100
@@ -141,4 +137,5 @@ def evaluate(
 
     avg_loss = running_loss / total
     accuracy = correct / total * 100
+    print(f"[evaluate] test_loss={avg_loss:.4f} acc={accuracy:.2f}%")
     return EpochStats(loss=avg_loss, accuracy=accuracy)

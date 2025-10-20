@@ -1,0 +1,139 @@
+_wandb:
+    value:
+        cli_version: 0.22.2
+        e:
+            xdjdglpygqjkgvcbipbbauxatwd5927s:
+                args:
+                    - --config
+                    - configs/concentration.yaml
+                codePath: .venv/bin/alt-back-train
+                codePathLocal: .venv/bin/alt-back-train
+                email: danielthomward@gmail.com
+                executable: /Users/danburke-ward/Outside/alt_back/.venv/bin/python3
+                git:
+                    commit: fe6fa6922c552e2caae2255566128665de47a7b2
+                    remote: https://github.com/tick143/fmnist_base.git
+                host: MacBookAir
+                os: macOS-15.6-arm64-arm-64bit
+                program: /Users/danburke-ward/Outside/alt_back/.venv/bin/alt-back-train
+                python: CPython 3.11.12
+                root: /Users/danburke-ward/Outside/alt_back
+                startedAt: "2025-10-20T20:32:10.195681Z"
+                writerId: xdjdglpygqjkgvcbipbbauxatwd5927s
+        m: []
+        python_version: 3.11.12
+        t:
+            "1":
+                - 1
+                - 41
+            "2":
+                - 1
+                - 41
+            "3":
+                - 13
+                - 15
+                - 16
+            "4": 3.11.12
+            "5": 0.22.2
+            "12": 0.22.2
+            "13": darwin-arm64
+affinity_decay:
+    value: 0.99
+affinity_strength:
+    value: 0.1
+affinity_temperature:
+    value: 1.5
+base_release:
+    value: 0.1
+column_competition:
+    value: 0.3
+concentration_momentum:
+    value: 0.85
+dataset:
+    value:
+        batch_size: 64
+        feature_max: 2.5
+        feature_min: -1.5
+        noise_std: 0
+        num_features: 5
+        num_test: 1024
+        num_train: 4096
+        num_workers: 0
+        seed: 13
+        shuffle: true
+        threshold: 1
+decay:
+    value: 0.05
+device:
+    value: auto
+direction_mode:
+    value: outputs_minus_inputs
+efficiency_bonus:
+    value: 0.4
+energy_momentum:
+    value: 0.5
+energy_slope:
+    value: 1.4
+epochs:
+    value: 200
+evaluate_interval:
+    value: 1
+hidden_layers:
+    value:
+        - 12
+        - 12
+        - 8
+learning_rule:
+    value: concentration
+log_interval:
+    value: 50
+logging:
+    value:
+        enabled: true
+        log_entropies: true
+        log_logits: true
+        log_probabilities: true
+        project: alt-back
+        run_name: concentration-gradients
+        tags:
+            - concentration
+            - energy-minimisation
+            - gradient-free
+loss_tolerance:
+    value: 1e-05
+mass_budget:
+    value: 5
+model_type:
+    value: spiking
+noise_std:
+    value: 0.01
+push_rate:
+    value: 0.3
+release_rate:
+    value: 0.25
+reward_gain:
+    value: 0.6
+sign_consistency_momentum:
+    value: 0.9
+sign_consistency_strength:
+    value: 0.2
+signed_weights:
+    value: true
+snapshot_interval:
+    value: 1
+spike_temperature:
+    value: 0.3
+spike_threshold:
+    value: 0.1
+step_scale:
+    value: 0.02
+suppress_rate:
+    value: 0.05
+target_gain:
+    value: 0.5
+temperature:
+    value: 1
+use_target_bonus:
+    value: true
+weight_clamp:
+    value: 6.5

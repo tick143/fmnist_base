@@ -120,6 +120,7 @@ class ConcentrationGradientBackwardStrategy(BackwardStrategy):
 
             energy_factor = max(self.running_energy * self.energy_slope, 1.0)
             punishment = max(batch_loss * energy_factor, batch_loss)
+            punishment = min(punishment, 10.0)  # Clamp punishment to prevent exploding weights
 
             context.extras["energy"] = self.running_energy
             context.extras["energy_factor"] = energy_factor

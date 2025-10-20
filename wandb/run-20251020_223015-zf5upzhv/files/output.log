@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/Users/danburke-ward/Outside/alt_back/.venv/bin/alt-back-train", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/Users/danburke-ward/Outside/alt_back/src/alt_back/training/train.py", line 206, in main
+    train(args.config)
+  File "/Users/danburke-ward/Outside/alt_back/src/alt_back/training/train.py", line 130, in train
+    wandb_logger.watch(model)
+  File "/Users/danburke-ward/Outside/alt_back/src/alt_back/utils/logging.py", line 38, in watch
+    if not self.enabled or self.run is None or not self._watch_requested:
+                           ^^^^^^^^
+AttributeError: 'WandbLogger' object has no attribute 'run'

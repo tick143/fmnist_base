@@ -1,0 +1,11 @@
+{"time":"2025-10-20T22:40:57.991408+02:00","level":"INFO","msg":"stream: starting","core version":"0.22.2"}
+{"time":"2025-10-20T22:40:58.288579+02:00","level":"INFO","msg":"stream: created new stream","id":"vncnse6l"}
+{"time":"2025-10-20T22:40:58.288632+02:00","level":"INFO","msg":"handler: started","stream_id":"vncnse6l"}
+{"time":"2025-10-20T22:40:58.288814+02:00","level":"INFO","msg":"stream: started","id":"vncnse6l"}
+{"time":"2025-10-20T22:40:58.28882+02:00","level":"INFO","msg":"writer: started","stream_id":"vncnse6l"}
+{"time":"2025-10-20T22:40:58.288851+02:00","level":"INFO","msg":"sender: started","stream_id":"vncnse6l"}
+{"time":"2025-10-20T22:40:58.633447+02:00","level":"INFO","msg":"stream: closing","id":"vncnse6l"}
+{"time":"2025-10-20T22:40:59.548887+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-10-20T22:40:59.783577+02:00","level":"INFO","msg":"handler: closed","stream_id":"vncnse6l"}
+{"time":"2025-10-20T22:40:59.783685+02:00","level":"INFO","msg":"sender: closed","stream_id":"vncnse6l"}
+{"time":"2025-10-20T22:40:59.783699+02:00","level":"INFO","msg":"stream: closed","id":"vncnse6l"}

@@ -2,15 +2,24 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Any
+from typing import Any, Tuple
 
 import torch
 
-from ..config import Config, ComponentConfig, load_config
+from ..config import ComponentConfig, load_config
 from ..data import fashion
-from ..training.loop import EpochStats, evaluate, train_one_epoch
+from ..data.synthetic import create_dataloaders
+from ..training.context import BatchContext
+from ..training.loop import EpochStats, evaluate
+from ..utils.activations import ActivationRecorder
 from ..utils.logging import WandbLogger
 from ..utils.imports import import_from_string
+from ..visualization.trainer import trainer_config_from_yaml
+from ..models.spiking import TinySpikingNetwork
+from ..models.synthetic import SyntheticDenseNetwork
+from ..backward.mass_redistribution import MassRedistributionBackwardStrategy
+from ..backward.concentration import ConcentrationGradientBackwardStrategy
+from ..optim.null_optimizer import NullOptimizerStrategy
 
 
 def parse_args() -> argparse.Namespace:
@@ -41,24 +50,33 @@ def resolve_device(device_str: str) -> torch.device:
     return torch.device(device_str)
 
 
-def train(config: Config) -> tuple[list[EpochStats], list[EpochStats]]:
-    device = resolve_device(config.training.device)
-    if config.training.seed is not None:
-        torch.manual_seed(config.training.seed)
+from ..visualization.trainer import trainer_config_from_yaml
+
+def train(config_path: str) -> tuple[list[EpochStats], list[EpochStats]]:
+    config = trainer_config_from_yaml(config_path)
+    device = resolve_device(config.device)
+
+    if config.dataset.seed is not None:
+        torch.manual_seed(config.dataset.seed)
         if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(config.training.seed)
+            torch.cuda.manual_seed_all(config.dataset.seed)
 
-    if config.dataset.target:
-        dataloader_factory = import_from_string(config.dataset.target)
-        factory_args = dict(config.dataset.params)
-        factory_args.setdefault("batch_size", config.training.batch_size)
-        factory_args.setdefault("num_workers", config.training.num_workers)
-        factory_args.setdefault("seed", config.training.seed or 0)
-        train_loader, test_loader = dataloader_factory(factory_args)
+    train_loader, test_loader = create_dataloaders(config.dataset)
+
+    if config.model_type == "spiking":
+        model = TinySpikingNetwork(
+            input_neurons=config.dataset.num_features,
+            hidden_layers=config.hidden_layers,
+            output_neurons=2,  # Assuming binary classification for synthetic data
+            spike_threshold=config.spike_threshold,
+            spike_temperature=config.spike_temperature,
+        )
     else:
-        train_loader, test_loader = fashion.dataloaders(config.dataset, config.training)
-
-    model = instantiate_component(config.model)
+        model = SyntheticDenseNetwork(
+            input_neurons=config.dataset.num_features,
+            hidden_layers=config.hidden_layers,
+            output_neurons=2,  # Assuming binary classification for synthetic data
+        )
     model.to(device)
 
     def _init_weights(module: torch.nn.Module) -> None:
@@ -69,74 +87,157 @@ def train(config: Config) -> tuple[list[EpochStats], list[EpochStats]]:
 
     model.apply(_init_weights)
 
-    backward_strategy = instantiate_component(config.backward)
-    optimizer_strategy = instantiate_component(config.optimizer)
+    if config.learning_rule == "mass_redistribution":
+        backward_strategy = MassRedistributionBackwardStrategy(
+            release_rate=config.release_rate,
+            reward_gain=config.reward_gain,
+            base_release=config.base_release,
+            decay=config.decay,
+            temperature=config.temperature,
+            efficiency_bonus=config.efficiency_bonus,
+            column_competition=config.column_competition,
+            noise_std=config.noise_std,
+            mass_budget=config.mass_budget,
+            signed_weights=config.signed_weights,
+            enable_target_bonus=config.use_target_bonus,
+            target_gain=config.target_gain,
+            affinity_strength=config.affinity_strength,
+            affinity_decay=config.affinity_decay,
+            affinity_temperature=config.affinity_temperature,
+            sign_consistency_strength=config.sign_consistency_strength,
+            sign_consistency_momentum=config.sign_consistency_momentum,
+        )
+    else:
+        backward_strategy = ConcentrationGradientBackwardStrategy(
+            push_rate=config.push_rate,
+            suppress_rate=config.suppress_rate,
+            step_scale=config.step_scale,
+            energy_slope=config.energy_slope,
+            energy_momentum=config.energy_momentum,
+            concentration_momentum=config.concentration_momentum,
+            loss_tolerance=config.loss_tolerance,
+            weight_clamp=config.weight_clamp,
+            direction_mode=config.direction_mode,
+        )
+
+    optimizer_strategy = NullOptimizerStrategy()
     optimizer_strategy.setup(model=model)
 
     loss_fn = torch.nn.CrossEntropyLoss()
     train_history: list[EpochStats] = []
     eval_history: list[EpochStats] = []
     wandb_logger = WandbLogger(config)
-    wandb_logger.watch(model)
+    # wandb_logger.watch(model)
     global_step = 0
 
     try:
-        for epoch in range(1, config.training.epochs + 1):
-            print(f"\nEpoch {epoch}/{config.training.epochs} -> device={device}")
+        for epoch in range(1, config.epochs + 1):
+            model.train()
+            running_loss = 0.0
+            correct = 0
+            total = 0
 
-            # Re-create backward strategy for each epoch to reset its state
-            backward_strategy = instantiate_component(config.backward)
-
-            train_stats, global_step = train_one_epoch(
-                model=model,
-                dataloader=train_loader,
-                backward_strategy=backward_strategy,
-                optimizer_strategy=optimizer_strategy,
-                device=device,
-                loss_fn=loss_fn,
-                log_interval=config.training.log_interval,
-                epoch=epoch,
-                logger=wandb_logger,
-                wandb_cfg=config.logging,
-                global_step=global_step,
-            )
-            eval_stats = evaluate(
-                model=model,
-                dataloader=test_loader,
-                device=device,
-                loss_fn=loss_fn,
-            )
-
-            print(
-                f"[epoch {epoch}] train_loss={train_stats.loss:.4f} train_acc={train_stats.accuracy:.2f}% | "
-                f"test_loss={eval_stats.loss:.4f} test_acc={eval_stats.accuracy:.2f}%"
-            )
-
-            if wandb_logger.enabled:
-                wandb_logger.log(
-                    {
-                        "epoch": epoch,
-                        "train/epoch_loss": train_stats.loss,
-                        "train/epoch_accuracy": train_stats.accuracy,
-                        "eval/loss": eval_stats.loss,
-                        "eval/accuracy": eval_stats.accuracy,
-                    },
-                    step=global_step,
+            # Create a new backward strategy for each epoch to reset its state
+            if config.learning_rule == "mass_redistribution":
+                backward_strategy = MassRedistributionBackwardStrategy(
+                    release_rate=config.release_rate,
+                    reward_gain=config.reward_gain,
+                    base_release=config.base_release,
+                    decay=config.decay,
+                    temperature=config.temperature,
+                    efficiency_bonus=config.efficiency_bonus,
+                    column_competition=config.column_competition,
+                    noise_std=config.noise_std,
+                    mass_budget=config.mass_budget,
+                    signed_weights=config.signed_weights,
+                    enable_target_bonus=config.use_target_bonus,
+                    target_gain=config.target_gain,
+                    affinity_strength=config.affinity_strength,
+                    affinity_decay=config.affinity_decay,
+                    affinity_temperature=config.affinity_temperature,
+                    sign_consistency_strength=config.sign_consistency_strength,
+                    sign_consistency_momentum=config.sign_consistency_momentum,
+                )
+            else:
+                backward_strategy = ConcentrationGradientBackwardStrategy(
+                    push_rate=config.push_rate,
+                    suppress_rate=config.suppress_rate,
+                    step_scale=config.step_scale,
+                    energy_slope=config.energy_slope,
+                    energy_momentum=config.energy_momentum,
+                    concentration_momentum=config.concentration_momentum,
+                    loss_tolerance=config.loss_tolerance,
+                    weight_clamp=config.weight_clamp,
+                    direction_mode=config.direction_mode,
                 )
 
-            train_history.append(train_stats)
-            eval_history.append(eval_stats)
+            for batch_idx, (inputs, targets) in enumerate(train_loader):
+                inputs, targets = inputs.to(device), targets.to(device)
+
+                optimizer_strategy.zero_grad(model=model)
+                backward_strategy.zero_grad(model=model)
+
+                with ActivationRecorder(model) as recorder:
+                    outputs = model(inputs)
+                    loss = loss_fn(outputs, targets)
+
+                    context = BatchContext(
+                        epoch=epoch,
+                        batch_idx=batch_idx,
+                        model=model,
+                        inputs=inputs,
+                        targets=targets,
+                        outputs=outputs,
+                        loss=loss,
+                        device=device,
+                        activations=dict(recorder.records),
+                    )
+
+                    backward_strategy.backward(context)
+                    optimizer_strategy.step(context)
+
+                running_loss += loss.item() * inputs.size(0)
+                preds = outputs.argmax(dim=1)
+                correct += preds.eq(targets).sum().item()
+                total += targets.size(0)
+
+                if (global_step + 1) % config.log_interval == 0:
+                    train_stats = EpochStats(loss=running_loss / total, accuracy=correct / total * 100)
+                    eval_stats = evaluate(
+                        model=model,
+                        dataloader=test_loader,
+                        device=device,
+                        loss_fn=loss_fn,
+                    )
+                    print(
+                        f"[step {global_step + 1}] train_loss={train_stats.loss:.4f} train_acc={train_stats.accuracy:.2f}% | "
+                        f"test_loss={eval_stats.loss:.4f} test_acc={eval_stats.accuracy:.2f}%"
+                    )
+                    wandb_logger.log(
+                        {
+                            "train/epoch_loss": train_stats.loss,
+                            "train/epoch_accuracy": train_stats.accuracy,
+                            "eval/loss": eval_stats.loss,
+                            "eval/accuracy": eval_stats.accuracy,
+                        },
+                        step=global_step,
+                    )
+                    train_history.append(train_stats)
+                    eval_history.append(eval_stats)
+
+                global_step += 1
+
     finally:
         wandb_logger.finish()
+
     return train_history, eval_history
 
 
 def main() -> None:
     args = parse_args()
-    config = load_config(args.config)
     config_path = Path(args.config).resolve()
     print(f"Loaded config from {config_path}")
-    train(config)
+    train(args.config)
 
 
 if __name__ == "__main__":

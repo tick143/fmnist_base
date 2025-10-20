@@ -1,38 +1,36 @@
-from __future__ import annotations
+from dataclasses import asdict, fields
+from typing import Dict, Any
 
-from dataclasses import asdict
-from typing import Any, Dict
+import torch
+import wandb
 
-from ..config import Config
+from ..config import Config, WandbConfig
+from ..visualization.trainer import TrainerConfig
 
 
 class WandbLogger:
-    def __init__(self, config: Config) -> None:
-        self.config = config
-        self.enabled = config.logging.enabled
+    """Log metrics and watch models with Weights & Biases."""
+
+    def __init__(self, config: Config | TrainerConfig) -> None:
+        if isinstance(config, TrainerConfig):
+            logging_data = config.logging
+            self.config = WandbConfig()
+            for key, value in logging_data.items():
+                if hasattr(self.config, key):
+                    setattr(self.config, key, value)
+            flat_config = asdict(config)
+        else:
+            self.config = config.logging
+            flat_config = self._flatten_config(config)
+
+        self.enabled = self.config.enabled
         self.run = None
-        self._watch_requested = config.logging.watch_model
-
         if self.enabled:
-            try:
-                import wandb
-            except ModuleNotFoundError as exc:
-                raise RuntimeError("wandb logging requested but wandb is not installed") from exc
-
-            run_config: Dict[str, Any] = {
-                "training": asdict(config.training),
-                "dataset": asdict(config.dataset),
-                "model": asdict(config.model),
-                "backward": asdict(config.backward),
-                "optimizer": asdict(config.optimizer),
-            }
-            tags = config.logging.tags or []
             self.run = wandb.init(
-                project=config.logging.project,
-                entity=config.logging.entity,
-                name=config.logging.run_name,
-                config=run_config,
-                tags=tags,
+                project=self.config.project,
+                name=self.config.run_name,
+                tags=self.config.tags,
+                config=flat_config,
             )
 
     def log(self, data: Dict[str, Any], step: int | None = None) -> None:
@@ -42,13 +40,10 @@ class WandbLogger:
 
         wandb.log(data, step=step)
 
-    def watch(self, model: Any) -> None:
-        if not self.enabled or self.run is None or not self._watch_requested:
+    def watch(self, model: torch.nn.Module) -> None:
+        if not self.enabled or self.run is None:
             return
-        import wandb
-
-        wandb.watch(model, log="all", log_freq=100)
-        self._watch_requested = False
+        self.run.watch(model, log=self.config.watch_log, log_freq=self.config.watch_log_freq)
 
     def finish(self) -> None:
         if not self.enabled or self.run is None:

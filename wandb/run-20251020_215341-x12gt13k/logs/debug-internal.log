@@ -12,3 +12,11 @@
 {"time":"2025-10-20T21:57:58.080121+02:00","level":"INFO","msg":"flowcontrol: unblocked","totalOffloaded":5}
 {"time":"2025-10-20T21:59:13.068666+02:00","level":"INFO","msg":"flowcontrol: backed up, offloading to disk","recordNumber":14532}
 {"time":"2025-10-20T21:59:13.115373+02:00","level":"INFO","msg":"flowcontrol: unblocked","totalOffloaded":9}
+{"time":"2025-10-20T22:00:13.103898+02:00","level":"INFO","msg":"flowcontrol: backed up, offloading to disk","recordNumber":17352}
+{"time":"2025-10-20T22:00:13.110393+02:00","level":"INFO","msg":"flowcontrol: unblocked","totalOffloaded":3}
+{"time":"2025-10-20T22:01:16.715617+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2025-10-20T22:01:17.35852+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-10-20T22:01:17.604145+02:00","level":"INFO","msg":"stream: closing","id":"x12gt13k"}
+{"time":"2025-10-20T22:01:17.604307+02:00","level":"INFO","msg":"handler: closed","stream_id":"x12gt13k"}
+{"time":"2025-10-20T22:01:17.604436+02:00","level":"INFO","msg":"sender: closed","stream_id":"x12gt13k"}
+{"time":"2025-10-20T22:01:17.604455+02:00","level":"INFO","msg":"stream: closed","id":"x12gt13k"}

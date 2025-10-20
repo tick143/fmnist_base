@@ -43,6 +43,8 @@ def _option_list(labels: Dict[str, str]) -> list[dict[str, str]]:
 class TrainerConfig:
     """Bundle configuration for the interactive tiny spiking trainer."""
 
+    epochs: int = 1
+    log_interval: int = 10
     dataset: SyntheticDatasetConfig = field(
         default_factory=lambda: SyntheticDatasetConfig(
             num_features=5,
@@ -90,6 +92,7 @@ class TrainerConfig:
     direction_mode: str = "outputs_minus_inputs"
     snapshot_interval: int = 1
     evaluate_interval: int = 1
+    logging: dict = field(default_factory=dict)
 
 
 class TinySpikingTrainer:
@@ -637,11 +640,18 @@ def trainer_config_from_yaml(path: str, base: TrainerConfig | None = None) -> Tr
 
     if training_section.get("device"):
         payload["device"] = training_section["device"]
+    if training_section.get("epochs"):
+        payload["epochs"] = training_section["epochs"]
+    if training_section.get("log_interval"):
+        payload["log_interval"] = training_section["log_interval"]
 
     logging_section = raw.get("logging", {})
     if "snapshot_interval" in logging_section:
         payload["snapshot_interval"] = logging_section["snapshot_interval"]
     if "evaluate_interval" in logging_section:
         payload["evaluate_interval"] = logging_section["evaluate_interval"]
+
+    if logging_section:
+        payload["logging"] = logging_section
 
     return trainer_config_from_dict(payload, base=base)

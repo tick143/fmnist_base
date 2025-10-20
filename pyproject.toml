@@ -16,6 +16,7 @@ dependencies = [
 [project.scripts]
 alt-back-train = "alt_back.cli:main"
 alt-back-viz = "alt_back.visualization.runner:main"
+alt-back-tiny-sweep = "alt_back.sweeps.tiny_spiking:main"
 
 [tool.uv]
 index-url = "https://pypi.org/simple"

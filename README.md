@@ -43,6 +43,16 @@ alt-back-viz --port 8000
 
 This spins up a FastAPI server with a spiking network trained on a balanced synthetic dataset (`y = 1` when `sum(x) > 1.0`). Inputs are sampled from a widened range (default `[-1.5, 2.5]`) with injected noise so the early synapses stay lively. The learning rule is now “neurotransmitter redistribution”: after every batch we release a reward-dependent pool of transmitter, push it through co-activity/efficiency signals, and redistribute each neuron’s incoming mass without gradients. Persistent affinities, column competition, and sign-consistency keep pathways from collapsing. You can tweak the dataset params (`feature_min`, `feature_max`, `noise_std`, `threshold`), reshape the hidden stack (`hidden_layers` accepts an arbitrary comma-separated list), or adjust the redistribution knobs (release rate, reward gain, decay, affinity/sign strengths, column competition, mass budget, noise) from the UI. Flip the target bonus toggle off to stay fully reward-agnostic. Edit `configs/tiny_spiking.yaml`, reload it straight from the UI, or adjust everything live in the browser panel. The web UI exposes single-step and auto-stepping controls, live topology visualisation (orange/blue edges encode positive/negative weight strength), per-synapse deltas, spike-rate heatmaps, and running evaluation metrics.
 
+#### Tiny spiking sweep
+
+Run a full-matrix hyperparameter sweep that explores every MassRedistribution knob (release rate, reward gain, base release, decay, efficiency bonuses, column competition, noise, mass budget, signed weight toggles, target bonus settings, and affinity controls). Metrics stream to Weights & Biases for each combination:
+
+```bash
+alt-back-tiny-sweep --config configs/tiny_spiking.yaml --project <your-wandb-project> --entity <your-wandb-entity> --limit 200
+```
+
+Each sweep member trains for at least 1,500 optimiser steps (about 24 epochs with the default dataset) and logs batch loss/accuracy alongside epoch-level evaluation metrics. The default grid spans 3,456 combinations; use `--limit` to cap how many runs launch (the example above runs the first 200). Add `--dry-run` to preview the top-N planned configurations without starting training.
+
 ### Configuration
 
 All pluggable components are configured in YAML:

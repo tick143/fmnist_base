@@ -34,7 +34,7 @@ optimizer:
     lr: 0.001
 
 logging:
-  enabled: false
+  enabled: true
   project: alt-back
   tags: ["baseline"]
   log_logits: true

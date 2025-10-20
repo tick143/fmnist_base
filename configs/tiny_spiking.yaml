@@ -13,7 +13,7 @@ dataset:
     threshold: 1.0
     feature_min: -1.5
     feature_max: 2.5
-    noise_std: 0.25
+    noise_std: 0.0
     num_train: 4096
     num_test: 1024
     batch_size: 64

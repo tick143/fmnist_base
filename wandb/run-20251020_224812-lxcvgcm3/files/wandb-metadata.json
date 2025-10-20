@@ -1,0 +1,41 @@
+{
+  "os":  "macOS-15.6-arm64-arm-64bit",
+  "python":  "CPython 3.11.12",
+  "startedAt":  "2025-10-20T20:48:12.435350Z",
+  "args":  [
+    "--config",
+    "configs/concentration.yaml"
+  ],
+  "program":  "/Users/danburke-ward/Outside/alt_back/.venv/bin/alt-back-train",
+  "codePath":  ".venv/bin/alt-back-train",
+  "codePathLocal":  ".venv/bin/alt-back-train",
+  "git":  {
+    "remote":  "https://github.com/tick143/fmnist_base.git",
+    "commit":  "a326cec9f0ed447a5b7686152641b30e5c1c1e3d"
+  },
+  "email":  "danielthomward@gmail.com",
+  "root":  "/Users/danburke-ward/Outside/alt_back",
+  "host":  "MacBookAir",
+  "executable":  "/Users/danburke-ward/Outside/alt_back/.venv/bin/python3",
+  "cpu_count":  8,
+  "cpu_count_logical":  8,
+  "disk":  {
+    "/":  {
+      "total":  "245107195904",
+      "used":  "226508955648"
+    }
+  },
+  "memory":  {
+    "total":  "8589934592"
+  },
+  "apple":  {
+    "name":  "Apple M1",
+    "ecpuCores":  4,
+    "pcpuCores":  4,
+    "gpuCores":  7,
+    "memoryGb":  8,
+    "swapTotalBytes":  "3221225472",
+    "ramTotalBytes":  "8589934592"
+  },
+  "writerId":  "z6733uqnk28x4dcncvmvrq3jiqfa0jg7"
+}

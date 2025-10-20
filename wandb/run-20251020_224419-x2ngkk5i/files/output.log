@@ -1,0 +1,364 @@
+[evaluate] test_loss=0.8616 acc=50.00%
+[step 50] train_loss=0.7548 train_acc=49.59% | test_loss=0.8616 test_acc=50.00%
+[evaluate] test_loss=1.3488 acc=50.00%
+[step 100] train_loss=1.1143 train_acc=50.17% | test_loss=1.3488 test_acc=50.00%
+[evaluate] test_loss=1.9979 acc=50.00%
+[step 150] train_loss=1.8646 train_acc=49.79% | test_loss=1.9979 test_acc=50.00%
+[evaluate] test_loss=2.5051 acc=50.00%
+[step 200] train_loss=2.3869 train_acc=51.17% | test_loss=2.5051 test_acc=50.00%
+[evaluate] test_loss=3.0249 acc=50.00%
+[step 250] train_loss=2.7143 train_acc=49.84% | test_loss=3.0249 test_acc=50.00%
+[evaluate] test_loss=3.3515 acc=50.00%
+[step 300] train_loss=3.2203 train_acc=49.75% | test_loss=3.3515 test_acc=50.00%
+[evaluate] test_loss=3.7841 acc=50.00%
+[step 350] train_loss=3.4665 train_acc=52.60% | test_loss=3.7841 test_acc=50.00%
+[evaluate] test_loss=4.0077 acc=50.00%
+[step 400] train_loss=3.9577 train_acc=50.49% | test_loss=4.0077 test_acc=50.00%
+[evaluate] test_loss=4.3961 acc=50.00%
+[step 450] train_loss=3.9096 train_acc=56.25% | test_loss=4.3961 test_acc=50.00%
+[evaluate] test_loss=4.6374 acc=50.00%
+[step 500] train_loss=4.4866 train_acc=50.15% | test_loss=4.6374 test_acc=50.00%
+[evaluate] test_loss=4.9199 acc=50.00%
+[step 550] train_loss=4.8610 train_acc=49.05% | test_loss=4.9199 test_acc=50.00%
+[evaluate] test_loss=5.1404 acc=50.10%
+[step 600] train_loss=5.1480 train_acc=50.20% | test_loss=5.1404 test_acc=50.10%
+[evaluate] test_loss=5.3959 acc=50.20%
+[step 650] train_loss=5.3912 train_acc=50.47% | test_loss=5.3959 test_acc=50.20%
+[evaluate] test_loss=5.5983 acc=50.10%
+[step 700] train_loss=5.4695 train_acc=50.18% | test_loss=5.5983 test_acc=50.10%
+[evaluate] test_loss=5.7647 acc=50.10%
+[step 750] train_loss=5.7446 train_acc=49.69% | test_loss=5.7647 test_acc=50.10%
+[evaluate] test_loss=5.8009 acc=50.20%
+[step 800] train_loss=5.8669 train_acc=50.29% | test_loss=5.8009 test_acc=50.20%
+[evaluate] test_loss=5.9424 acc=50.39%
+[step 850] train_loss=6.1298 train_acc=49.48% | test_loss=5.9424 test_acc=50.39%
+[evaluate] test_loss=5.9952 acc=50.59%
+[step 900] train_loss=5.7239 train_acc=51.95% | test_loss=5.9952 test_acc=50.59%
+[evaluate] test_loss=6.0145 acc=51.07%
+[step 950] train_loss=6.1729 train_acc=50.43% | test_loss=6.0145 test_acc=51.07%
+[evaluate] test_loss=6.1714 acc=51.56%
+[step 1000] train_loss=6.2924 train_acc=50.35% | test_loss=6.1714 test_acc=51.56%
+[evaluate] test_loss=6.2730 acc=52.15%
+[step 1050] train_loss=6.2959 train_acc=51.32% | test_loss=6.2730 test_acc=52.15%
+[evaluate] test_loss=6.4046 acc=53.91%
+[step 1100] train_loss=6.8730 train_acc=50.78% | test_loss=6.4046 test_acc=53.91%
+[evaluate] test_loss=6.6660 acc=54.20%
+[step 1150] train_loss=6.5892 train_acc=53.10% | test_loss=6.6660 test_acc=54.20%
+[evaluate] test_loss=6.7616 acc=54.49%
+[step 1200] train_loss=6.7625 train_acc=53.84% | test_loss=6.7616 test_acc=54.49%
+[evaluate] test_loss=6.8924 acc=54.98%
+[step 1250] train_loss=6.7690 train_acc=54.96% | test_loss=6.8924 test_acc=54.98%
+[evaluate] test_loss=6.8868 acc=55.27%
+[step 1300] train_loss=7.1683 train_acc=53.36% | test_loss=6.8868 test_acc=55.27%
+[evaluate] test_loss=6.9308 acc=55.76%
+[step 1350] train_loss=6.7224 train_acc=55.99% | test_loss=6.9308 test_acc=55.76%
+[evaluate] test_loss=6.8661 acc=56.84%
+[step 1400] train_loss=7.0795 train_acc=55.83% | test_loss=6.8661 test_acc=56.84%
+[evaluate] test_loss=6.9743 acc=56.93%
+[step 1450] train_loss=7.0666 train_acc=56.85% | test_loss=6.9743 test_acc=56.93%
+[evaluate] test_loss=7.0375 acc=56.93%
+[step 1500] train_loss=6.8718 train_acc=58.09% | test_loss=7.0375 test_acc=56.93%
+[evaluate] test_loss=7.0577 acc=57.42%
+[step 1550] train_loss=7.2212 train_acc=57.59% | test_loss=7.0577 test_acc=57.42%
+[evaluate] test_loss=6.9220 acc=58.50%
+[step 1600] train_loss=7.2334 train_acc=57.20% | test_loss=6.9220 test_acc=58.50%
+[evaluate] test_loss=7.1115 acc=58.11%
+[step 1650] train_loss=7.1409 train_acc=57.75% | test_loss=7.1115 test_acc=58.11%
+[evaluate] test_loss=7.1915 acc=58.30%
+[step 1700] train_loss=7.3282 train_acc=57.12% | test_loss=7.1915 test_acc=58.30%
+[evaluate] test_loss=6.8817 acc=59.08%
+[step 1750] train_loss=7.1160 train_acc=59.02% | test_loss=6.8817 test_acc=59.08%
+[evaluate] test_loss=7.0283 acc=58.69%
+[step 1800] train_loss=6.9675 train_acc=59.38% | test_loss=7.0283 test_acc=58.69%
+[evaluate] test_loss=6.9234 acc=59.08%
+[step 1850] train_loss=7.2633 train_acc=58.86% | test_loss=6.9234 test_acc=59.08%
+[evaluate] test_loss=6.7875 acc=60.25%
+[step 1900] train_loss=7.0404 train_acc=59.55% | test_loss=6.7875 test_acc=60.25%
+[evaluate] test_loss=6.2158 acc=61.43%
+[step 1950] train_loss=6.5074 train_acc=61.30% | test_loss=6.2158 test_acc=61.43%
+[evaluate] test_loss=6.5835 acc=60.45%
+[step 2000] train_loss=6.7537 train_acc=60.84% | test_loss=6.5835 test_acc=60.45%
+[evaluate] test_loss=6.3407 acc=60.64%
+[step 2050] train_loss=5.8797 train_acc=64.84% | test_loss=6.3407 test_acc=60.64%
+[evaluate] test_loss=6.1177 acc=60.84%
+[step 2100] train_loss=6.6230 train_acc=59.83% | test_loss=6.1177 test_acc=60.84%
+[evaluate] test_loss=5.8863 acc=60.84%
+[step 2150] train_loss=6.2059 train_acc=60.32% | test_loss=5.8863 test_acc=60.84%
+[evaluate] test_loss=5.0837 acc=62.70%
+[step 2200] train_loss=4.9738 train_acc=62.50% | test_loss=5.0837 test_acc=62.70%
+[evaluate] test_loss=4.9569 acc=62.60%
+[step 2250] train_loss=4.8577 train_acc=61.56% | test_loss=4.9569 test_acc=62.60%
+[evaluate] test_loss=4.5186 acc=62.50%
+[step 2300] train_loss=4.7080 train_acc=61.54% | test_loss=4.5186 test_acc=62.50%
+[evaluate] test_loss=4.3798 acc=62.50%
+[step 2350] train_loss=4.5453 train_acc=61.11% | test_loss=4.3798 test_acc=62.50%
+[evaluate] test_loss=3.5064 acc=62.50%
+[step 2400] train_loss=3.5370 train_acc=61.08% | test_loss=3.5064 test_acc=62.50%
+[evaluate] test_loss=3.3520 acc=62.30%
+[step 2450] train_loss=3.4925 train_acc=58.77% | test_loss=3.3520 test_acc=62.30%
+[evaluate] test_loss=2.6451 acc=66.60%
+[step 2500] train_loss=2.6176 train_acc=66.80% | test_loss=2.6451 test_acc=66.60%
+[evaluate] test_loss=2.9303 acc=86.82%
+[step 2550] train_loss=2.8174 train_acc=80.30% | test_loss=2.9303 test_acc=86.82%
+[evaluate] test_loss=2.9734 acc=86.33%
+[step 2600] train_loss=3.0844 train_acc=86.33% | test_loss=2.9734 test_acc=86.33%
+[evaluate] test_loss=3.1567 acc=85.84%
+[step 2650] train_loss=3.0180 train_acc=87.02% | test_loss=3.1567 test_acc=85.84%
+[evaluate] test_loss=3.3731 acc=84.67%
+[step 2700] train_loss=3.2978 train_acc=86.20% | test_loss=3.3731 test_acc=84.67%
+[evaluate] test_loss=3.9790 acc=83.20%
+[step 2750] train_loss=3.6319 train_acc=84.63% | test_loss=3.9790 test_acc=83.20%
+[evaluate] test_loss=4.1436 acc=82.52%
+[step 2800] train_loss=3.9875 train_acc=83.69% | test_loss=4.1436 test_acc=82.52%
+[evaluate] test_loss=4.2991 acc=82.03%
+[step 2850] train_loss=4.2238 train_acc=83.18% | test_loss=4.2991 test_acc=82.03%
+[evaluate] test_loss=4.5329 acc=81.15%
+[step 2900] train_loss=4.3314 train_acc=82.97% | test_loss=4.5329 test_acc=81.15%
+[evaluate] test_loss=4.8489 acc=80.76%
+[step 2950] train_loss=5.0240 train_acc=81.25% | test_loss=4.8489 test_acc=80.76%
+[evaluate] test_loss=5.1927 acc=79.79%
+[step 3000] train_loss=5.1632 train_acc=80.11% | test_loss=5.1927 test_acc=79.79%
+[evaluate] test_loss=5.4860 acc=79.10%
+[step 3050] train_loss=5.3036 train_acc=80.02% | test_loss=5.4860 test_acc=79.10%
+[evaluate] test_loss=5.5284 acc=78.22%
+[step 3100] train_loss=5.4865 train_acc=79.58% | test_loss=5.5284 test_acc=78.22%
+[evaluate] test_loss=5.9405 acc=77.64%
+[step 3150] train_loss=5.9297 train_acc=77.57% | test_loss=5.9405 test_acc=77.64%
+[evaluate] test_loss=6.2041 acc=76.86%
+[step 3200] train_loss=5.9499 train_acc=77.73% | test_loss=6.2041 test_acc=76.86%
+[evaluate] test_loss=6.3772 acc=76.17%
+[step 3250] train_loss=6.4276 train_acc=76.12% | test_loss=6.3772 test_acc=76.17%
+[evaluate] test_loss=6.5099 acc=75.39%
+[step 3300] train_loss=6.2600 train_acc=76.52% | test_loss=6.5099 test_acc=75.39%
+[evaluate] test_loss=6.9583 acc=73.83%
+[step 3350] train_loss=6.6241 train_acc=75.92% | test_loss=6.9583 test_acc=73.83%
+[evaluate] test_loss=7.1799 acc=73.44%
+[step 3400] train_loss=6.6947 train_acc=75.39% | test_loss=7.1799 test_acc=73.44%
+[evaluate] test_loss=7.2339 acc=72.56%
+[step 3450] train_loss=7.1147 train_acc=73.44% | test_loss=7.2339 test_acc=72.56%
+[evaluate] test_loss=7.2554 acc=71.97%
+[step 3500] train_loss=7.1524 train_acc=72.41% | test_loss=7.2554 test_acc=71.97%
+[evaluate] test_loss=7.2563 acc=72.17%
+[step 3550] train_loss=7.3000 train_acc=71.67% | test_loss=7.2563 test_acc=72.17%
+[evaluate] test_loss=6.9866 acc=71.88%
+[step 3600] train_loss=6.5554 train_acc=73.44% | test_loss=6.9866 test_acc=71.88%
+[evaluate] test_loss=7.0422 acc=70.51%
+[step 3650] train_loss=6.4546 train_acc=72.66% | test_loss=7.0422 test_acc=70.51%
+[evaluate] test_loss=7.2860 acc=69.43%
+[step 3700] train_loss=7.0139 train_acc=70.19% | test_loss=7.2860 test_acc=69.43%
+[evaluate] test_loss=6.8313 acc=69.04%
+[step 3750] train_loss=7.1529 train_acc=68.96% | test_loss=6.8313 test_acc=69.04%
+[evaluate] test_loss=6.2988 acc=68.26%
+[step 3800] train_loss=6.0215 train_acc=71.29% | test_loss=6.2988 test_acc=68.26%
+[evaluate] test_loss=3.9502 acc=71.29%
+[step 3850] train_loss=4.0171 train_acc=72.19% | test_loss=3.9502 test_acc=71.29%
+[evaluate] test_loss=3.0198 acc=72.66%
+[step 3900] train_loss=3.4621 train_acc=72.14% | test_loss=3.0198 test_acc=72.66%
+[evaluate] test_loss=2.6363 acc=91.02%
+[step 3950] train_loss=2.4359 train_acc=89.03% | test_loss=2.6363 test_acc=91.02%
+[evaluate] test_loss=2.7066 acc=90.92%
+[step 4000] train_loss=2.6119 train_acc=90.92% | test_loss=2.7066 test_acc=90.92%
+[evaluate] test_loss=2.8157 acc=90.82%
+[step 4050] train_loss=3.0455 train_acc=89.58% | test_loss=2.8157 test_acc=90.82%
+[evaluate] test_loss=2.9729 acc=90.23%
+[step 4100] train_loss=2.9240 train_acc=90.62% | test_loss=2.9729 test_acc=90.23%
+[evaluate] test_loss=3.1274 acc=89.94%
+[step 4150] train_loss=2.9432 train_acc=90.57% | test_loss=3.1274 test_acc=89.94%
+[evaluate] test_loss=3.2533 acc=89.75%
+[step 4200] train_loss=3.0276 train_acc=90.23% | test_loss=3.2533 test_acc=89.75%
+[evaluate] test_loss=3.5036 acc=88.18%
+[step 4250] train_loss=3.4331 train_acc=88.70% | test_loss=3.5036 test_acc=88.18%
+[evaluate] test_loss=3.7017 acc=87.89%
+[step 4300] train_loss=3.9249 train_acc=87.76% | test_loss=3.7017 test_acc=87.89%
+[evaluate] test_loss=4.1784 acc=87.01%
+[step 4350] train_loss=3.7697 train_acc=87.95% | test_loss=4.1784 test_acc=87.01%
+[evaluate] test_loss=4.3789 acc=86.52%
+[step 4400] train_loss=4.2877 train_acc=86.46% | test_loss=4.3789 test_acc=86.52%
+[evaluate] test_loss=4.6881 acc=85.45%
+[step 4450] train_loss=4.5286 train_acc=85.98% | test_loss=4.6881 test_acc=85.45%
+[evaluate] test_loss=5.1298 acc=84.28%
+[step 4500] train_loss=4.6820 train_acc=85.62% | test_loss=5.1298 test_acc=84.28%
+[evaluate] test_loss=5.5530 acc=82.91%
+[step 4550] train_loss=6.2306 train_acc=80.73% | test_loss=5.5530 test_acc=82.91%
+[evaluate] test_loss=5.7740 acc=82.42%
+[step 4600] train_loss=5.6901 train_acc=82.45% | test_loss=5.7740 test_acc=82.42%
+[evaluate] test_loss=6.0221 acc=80.96%
+[step 4650] train_loss=5.8974 train_acc=81.81% | test_loss=6.0221 test_acc=80.96%
+[evaluate] test_loss=6.4775 acc=79.88%
+[step 4700] train_loss=6.3096 train_acc=80.25% | test_loss=6.4775 test_acc=79.88%
+[evaluate] test_loss=6.6117 acc=78.52%
+[step 4750] train_loss=6.2327 train_acc=80.02% | test_loss=6.6117 test_acc=78.52%
+[evaluate] test_loss=6.9042 acc=77.83%
+[step 4800] train_loss=6.7813 train_acc=78.39% | test_loss=6.9042 test_acc=77.83%
+[evaluate] test_loss=7.2134 acc=76.27%
+[step 4850] train_loss=6.9904 train_acc=77.50% | test_loss=7.2134 test_acc=76.27%
+[evaluate] test_loss=7.2703 acc=75.68%
+[step 4900] train_loss=7.2101 train_acc=75.87% | test_loss=7.2703 test_acc=75.68%
+[evaluate] test_loss=7.4352 acc=75.00%
+[step 4950] train_loss=7.2137 train_acc=75.64% | test_loss=7.4352 test_acc=75.00%
+[evaluate] test_loss=7.4387 acc=74.71%
+[step 5000] train_loss=7.9239 train_acc=73.44% | test_loss=7.4387 test_acc=74.71%
+[evaluate] test_loss=6.9008 acc=74.22%
+[step 5050] train_loss=7.1419 train_acc=74.78% | test_loss=6.9008 test_acc=74.22%
+[evaluate] test_loss=6.8976 acc=73.54%
+[step 5100] train_loss=6.7428 train_acc=74.47% | test_loss=6.8976 test_acc=73.54%
+[evaluate] test_loss=6.1219 acc=73.05%
+[step 5150] train_loss=6.3757 train_acc=73.65% | test_loss=6.1219 test_acc=73.05%
+[evaluate] test_loss=4.9901 acc=73.44%
+[step 5200] train_loss=4.9215 train_acc=73.93% | test_loss=4.9901 test_acc=73.44%
+[evaluate] test_loss=4.9102 acc=73.24%
+[step 5250] train_loss=4.9679 train_acc=74.22% | test_loss=4.9102 test_acc=73.24%
+[evaluate] test_loss=5.2404 acc=71.97%
+[step 5300] train_loss=4.9859 train_acc=73.14% | test_loss=5.2404 test_acc=71.97%
+[evaluate] test_loss=4.6191 acc=82.42%
+[step 5350] train_loss=4.7906 train_acc=77.10% | test_loss=4.6191 test_acc=82.42%
+[evaluate] test_loss=4.3523 acc=84.28%
+[step 5400] train_loss=4.2199 train_acc=85.09% | test_loss=4.3523 test_acc=84.28%
+[evaluate] test_loss=4.4365 acc=84.18%
+[step 5450] train_loss=4.0862 train_acc=85.16% | test_loss=4.4365 test_acc=84.18%
+[evaluate] test_loss=4.3275 acc=84.47%
+[step 5500] train_loss=4.3194 train_acc=84.45% | test_loss=4.3275 test_acc=84.47%
+[evaluate] test_loss=4.1765 acc=85.45%
+[step 5550] train_loss=4.1334 train_acc=85.73% | test_loss=4.1765 test_acc=85.45%
+[evaluate] test_loss=3.9754 acc=86.62%
+[step 5600] train_loss=3.9592 train_acc=86.67% | test_loss=3.9754 test_acc=86.62%
+[evaluate] test_loss=4.0486 acc=85.84%
+[step 5650] train_loss=4.4133 train_acc=84.98% | test_loss=4.0486 test_acc=85.84%
+[evaluate] test_loss=3.9199 acc=87.11%
+[step 5700] train_loss=4.4809 train_acc=85.55% | test_loss=3.9199 test_acc=87.11%
+[evaluate] test_loss=3.8806 acc=87.50%
+[step 5750] train_loss=3.8650 train_acc=87.24% | test_loss=3.8806 test_acc=87.50%
+[evaluate] test_loss=3.8232 acc=87.50%
+[step 5800] train_loss=3.7766 train_acc=87.46% | test_loss=3.8232 test_acc=87.50%
+[evaluate] test_loss=3.7651 acc=87.70%
+[step 5850] train_loss=4.2533 train_acc=85.64% | test_loss=3.7651 test_acc=87.70%
+[evaluate] test_loss=3.6949 acc=87.99%
+[step 5900] train_loss=3.4973 train_acc=88.15% | test_loss=3.6949 test_acc=87.99%
+[evaluate] test_loss=3.6959 acc=88.28%
+[step 5950] train_loss=3.5526 train_acc=88.26% | test_loss=3.6959 test_acc=88.28%
+[evaluate] test_loss=3.5886 acc=88.38%
+[step 6000] train_loss=3.4958 train_acc=88.41% | test_loss=3.5886 test_acc=88.38%
+[evaluate] test_loss=3.5726 acc=88.38%
+[step 6050] train_loss=3.5015 train_acc=88.51% | test_loss=3.5726 test_acc=88.38%
+[evaluate] test_loss=3.4713 acc=88.48%
+[step 6100] train_loss=3.6156 train_acc=88.28% | test_loss=3.4713 test_acc=88.48%
+[evaluate] test_loss=3.4643 acc=88.57%
+[step 6150] train_loss=3.4207 train_acc=88.80% | test_loss=3.4643 test_acc=88.57%
+[evaluate] test_loss=3.3668 acc=89.06%
+[step 6200] train_loss=3.2514 train_acc=89.20% | test_loss=3.3668 test_acc=89.06%
+[evaluate] test_loss=3.3728 acc=89.06%
+[step 6250] train_loss=3.2964 train_acc=89.14% | test_loss=3.3728 test_acc=89.06%
+[evaluate] test_loss=3.3746 acc=88.96%
+[step 6300] train_loss=3.2067 train_acc=89.45% | test_loss=3.3746 test_acc=88.96%
+[evaluate] test_loss=3.3382 acc=89.16%
+[step 6350] train_loss=3.6015 train_acc=87.83% | test_loss=3.3382 test_acc=89.16%
+[evaluate] test_loss=3.3151 acc=89.36%
+[step 6400] train_loss=3.1654 train_acc=89.58% | test_loss=3.3151 test_acc=89.36%
+[evaluate] test_loss=3.3221 acc=89.26%
+[step 6450] train_loss=3.2632 train_acc=89.25% | test_loss=3.3221 test_acc=89.26%
+[evaluate] test_loss=3.3317 acc=89.26%
+[step 6500] train_loss=3.2215 train_acc=89.32% | test_loss=3.3317 test_acc=89.26%
+[evaluate] test_loss=3.3332 acc=89.26%
+[step 6550] train_loss=3.5525 train_acc=88.35% | test_loss=3.3332 test_acc=89.26%
+[evaluate] test_loss=3.3694 acc=89.16%
+[step 6600] train_loss=3.5444 train_acc=88.48% | test_loss=3.3694 test_acc=89.16%
+[evaluate] test_loss=3.3612 acc=89.16%
+[step 6650] train_loss=3.2649 train_acc=89.17% | test_loss=3.3612 test_acc=89.16%
+[evaluate] test_loss=3.3693 acc=89.16%
+[step 6700] train_loss=3.2257 train_acc=89.13% | test_loss=3.3693 test_acc=89.16%
+[evaluate] test_loss=3.3666 acc=89.16%
+[step 6750] train_loss=3.5085 train_acc=88.44% | test_loss=3.3666 test_acc=89.16%
+[evaluate] test_loss=3.3694 acc=88.96%
+[step 6800] train_loss=2.9322 train_acc=89.75% | test_loss=3.3694 test_acc=88.96%
+[evaluate] test_loss=3.3716 acc=88.87%
+[step 6850] train_loss=2.1204 train_acc=92.97% | test_loss=3.3716 test_acc=88.87%
+[evaluate] test_loss=3.3919 acc=88.77%
+[step 6900] train_loss=3.3160 train_acc=88.64% | test_loss=3.3919 test_acc=88.77%
+[evaluate] test_loss=3.3920 acc=88.87%
+[step 6950] train_loss=3.2123 train_acc=88.90% | test_loss=3.3920 test_acc=88.87%
+[evaluate] test_loss=3.3796 acc=88.87%
+[step 7000] train_loss=3.1200 train_acc=89.32% | test_loss=3.3796 test_acc=88.87%
+[evaluate] test_loss=3.3810 acc=88.87%
+[step 7050] train_loss=3.3261 train_acc=88.59% | test_loss=3.3810 test_acc=88.87%
+[evaluate] test_loss=3.3974 acc=88.77%
+[step 7100] train_loss=3.1440 train_acc=89.32% | test_loss=3.3974 test_acc=88.77%
+[evaluate] test_loss=3.4149 acc=88.48%
+[step 7150] train_loss=3.2707 train_acc=88.93% | test_loss=3.4149 test_acc=88.48%
+[evaluate] test_loss=3.3688 acc=88.67%
+[step 7200] train_loss=3.1192 train_acc=89.50% | test_loss=3.3688 test_acc=88.67%
+[evaluate] test_loss=3.3826 acc=88.57%
+[step 7250] train_loss=3.1009 train_acc=89.15% | test_loss=3.3826 test_acc=88.57%
+[evaluate] test_loss=3.3474 acc=88.38%
+[step 7300] train_loss=3.3374 train_acc=88.67% | test_loss=3.3474 test_acc=88.38%
+[evaluate] test_loss=3.3277 acc=88.28%
+[step 7350] train_loss=3.0233 train_acc=89.61% | test_loss=3.3277 test_acc=88.28%
+[evaluate] test_loss=3.2693 acc=88.28%
+[step 7400] train_loss=3.1289 train_acc=89.14% | test_loss=3.2693 test_acc=88.28%
+[evaluate] test_loss=3.3021 acc=88.28%
+[step 7450] train_loss=3.4067 train_acc=88.04% | test_loss=3.3021 test_acc=88.28%
+[evaluate] test_loss=3.2316 acc=88.48%
+[step 7500] train_loss=3.1624 train_acc=88.93% | test_loss=3.2316 test_acc=88.48%
+[evaluate] test_loss=3.1941 acc=88.77%
+[step 7550] train_loss=2.9683 train_acc=89.69% | test_loss=3.1941 test_acc=88.77%
+[evaluate] test_loss=3.2240 acc=88.67%
+[step 7600] train_loss=2.9845 train_acc=89.75% | test_loss=3.2240 test_acc=88.67%
+[evaluate] test_loss=3.1838 acc=88.77%
+[step 7650] train_loss=2.9802 train_acc=89.71% | test_loss=3.1838 test_acc=88.77%
+[evaluate] test_loss=3.1600 acc=89.16%
+[step 7700] train_loss=2.8282 train_acc=90.00% | test_loss=3.1600 test_acc=89.16%
+[evaluate] test_loss=3.1790 acc=88.96%
+[step 7750] train_loss=2.4530 train_acc=90.36% | test_loss=3.1790 test_acc=88.96%
+[evaluate] test_loss=3.1934 acc=88.96%
+[step 7800] train_loss=2.9062 train_acc=90.04% | test_loss=3.1934 test_acc=88.96%
+[evaluate] test_loss=3.1187 acc=89.45%
+[step 7850] train_loss=2.8745 train_acc=90.03% | test_loss=3.1187 test_acc=89.45%
+[evaluate] test_loss=3.0979 acc=89.55%
+[step 7900] train_loss=2.9600 train_acc=89.79% | test_loss=3.0979 test_acc=89.55%
+[evaluate] test_loss=3.0862 acc=89.55%
+[step 7950] train_loss=2.7316 train_acc=90.29% | test_loss=3.0862 test_acc=89.55%
+[evaluate] test_loss=3.0598 acc=89.65%
+[step 8000] train_loss=2.9006 train_acc=90.09% | test_loss=3.0598 test_acc=89.65%
+[evaluate] test_loss=3.0751 acc=89.65%
+[step 8050] train_loss=2.8976 train_acc=90.19% | test_loss=3.0751 test_acc=89.65%
+[evaluate] test_loss=3.0504 acc=89.75%
+[step 8100] train_loss=2.8884 train_acc=90.15% | test_loss=3.0504 test_acc=89.75%
+[evaluate] test_loss=3.0265 acc=89.84%
+[step 8150] train_loss=2.7540 train_acc=90.41% | test_loss=3.0265 test_acc=89.84%
+[evaluate] test_loss=3.0161 acc=90.04%
+[step 8200] train_loss=2.6156 train_acc=91.41% | test_loss=3.0161 test_acc=90.04%
+[evaluate] test_loss=2.9975 acc=90.04%
+[step 8250] train_loss=2.8495 train_acc=90.30% | test_loss=2.9975 test_acc=90.04%
+[evaluate] test_loss=3.0040 acc=90.04%
+[step 8300] train_loss=2.8404 train_acc=90.38% | test_loss=3.0040 test_acc=90.04%
+[evaluate] test_loss=2.9922 acc=90.04%
+[step 8350] train_loss=2.6790 train_acc=90.83% | test_loss=2.9922 test_acc=90.04%
+[evaluate] test_loss=2.9949 acc=90.04%
+[step 8400] train_loss=2.9445 train_acc=89.94% | test_loss=2.9949 test_acc=90.04%
+[evaluate] test_loss=2.9617 acc=90.14%
+[step 8450] train_loss=2.9488 train_acc=89.06% | test_loss=2.9617 test_acc=90.14%
+[evaluate] test_loss=2.9703 acc=90.14%
+[step 8500] train_loss=2.7918 train_acc=90.69% | test_loss=2.9703 test_acc=90.14%
+[evaluate] test_loss=2.9541 acc=90.14%
+[step 8550] train_loss=2.7413 train_acc=90.75% | test_loss=2.9541 test_acc=90.14%
+[evaluate] test_loss=2.9412 acc=90.23%
+[step 8600] train_loss=2.7571 train_acc=90.62% | test_loss=2.9412 test_acc=90.23%
+[evaluate] test_loss=2.9247 acc=90.23%
+[step 8650] train_loss=2.0510 train_acc=93.28% | test_loss=2.9247 test_acc=90.23%
+[evaluate] test_loss=2.9285 acc=90.23%
+[step 8700] train_loss=2.6648 train_acc=90.86% | test_loss=2.9285 test_acc=90.23%
+[evaluate] test_loss=2.9321 acc=90.23%
+[step 8750] train_loss=2.5855 train_acc=91.17% | test_loss=2.9321 test_acc=90.23%
+[evaluate] test_loss=2.9320 acc=90.23%
+[step 8800] train_loss=2.8249 train_acc=90.28% | test_loss=2.9320 test_acc=90.23%
+[evaluate] test_loss=2.9135 acc=90.23%
+[step 8850] train_loss=2.8347 train_acc=90.19% | test_loss=2.9135 test_acc=90.23%
+[evaluate] test_loss=2.8814 acc=90.53%
+[step 8900] train_loss=2.4176 train_acc=91.80% | test_loss=2.8814 test_acc=90.53%
+[evaluate] test_loss=2.8835 acc=90.43%
+[step 8950] train_loss=2.6384 train_acc=91.00% | test_loss=2.8835 test_acc=90.43%
+[evaluate] test_loss=2.8604 acc=90.62%
+[step 9000] train_loss=2.7129 train_acc=90.86% | test_loss=2.8604 test_acc=90.62%
+[evaluate] test_loss=2.8501 acc=90.62%
+[step 9050] train_loss=2.2153 train_acc=92.49% | test_loss=2.8501 test_acc=90.62%
+[evaluate] test_loss=2.8513 acc=90.62%
+[step 9100] train_loss=3.0969 train_acc=89.84% | test_loss=2.8513 test_acc=90.62%

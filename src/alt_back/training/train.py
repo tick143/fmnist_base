@@ -5,12 +5,14 @@ from pathlib import Path
 from typing import Any, Tuple
 
 import torch
+import torch.nn.functional as F
 
 from ..config import ComponentConfig, load_config
 from ..data import fashion
 from ..data.synthetic import create_dataloaders
 from ..training.context import BatchContext
 from ..training.loop import EpochStats, evaluate
+from ..training.metrics import compute_prediction_metrics, compute_activation_entropies
 from ..utils.activations import ActivationRecorder
 from ..utils.logging import WandbLogger
 from ..utils.imports import import_from_string
@@ -222,6 +224,37 @@ def train(config_path: str) -> tuple[list[EpochStats], list[EpochStats]]:
                         },
                         step=global_step,
                     )
+
+                    # Detailed logging
+                    probs = F.softmax(outputs.detach(), dim=1)
+                    pred_metrics = compute_prediction_metrics(outputs.detach())
+                    layer_entropies, network_entropy = compute_activation_entropies(context.activations)
+
+                    log_payload = {
+                        "train/loss": loss.item(),
+                        "train/accuracy": preds.eq(targets).float().mean().item() * 100,
+                        "train/prediction_entropy": pred_metrics["entropy"],
+                        "train/network_entropy": network_entropy,
+                    }
+
+                    if config.logging.get("log_logits", True):
+                        log_payload["train/logits/mean"] = outputs.detach().mean().item()
+                        log_payload["train/logits/std"] = outputs.detach().std().item()
+
+                    if config.logging.get("log_probabilities", True):
+                        log_payload["train/probabilities/mean"] = probs.mean().item()
+                        log_payload["train/probabilities/std"] = probs.std().item()
+
+                    if config.logging.get("log_entropies", True):
+                        for layer_name, entropy_value in layer_entropies.items():
+                            sanitized = layer_name.replace(".", "/")
+                            log_payload[f"train/layer_entropy/{sanitized}"] = entropy_value
+
+                    for extra_key, extra_value in context.extras.items():
+                        log_payload[f"train/{extra_key}"] = extra_value
+
+                    wandb_logger.log(log_payload, step=global_step)
+
                     train_history.append(train_stats)
                     eval_history.append(eval_stats)
 

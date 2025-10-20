@@ -11,7 +11,7 @@ const DATASET_KEYS = [
   "seed",
 ];
 
-const TRAINER_NUMERIC_KEYS = [
+const MASS_NUMERIC_KEYS = [
   "release_rate",
   "reward_gain",
   "base_release",
@@ -27,10 +27,28 @@ const TRAINER_NUMERIC_KEYS = [
   "affinity_temperature",
   "sign_consistency_strength",
   "sign_consistency_momentum",
+];
+
+const CONCENTRATION_NUMERIC_KEYS = [
+  "push_rate",
+  "suppress_rate",
+  "step_scale",
+  "energy_slope",
+  "energy_momentum",
+  "concentration_momentum",
+  "loss_tolerance",
+  "weight_clamp",
+];
+
+const GENERAL_TRAINER_KEYS = [
   "spike_threshold",
   "spike_temperature",
   "snapshot_interval",
   "evaluate_interval",
+];
+
+const TRAINER_NUMERIC_KEYS = [
+  ...new Set([...GENERAL_TRAINER_KEYS, ...MASS_NUMERIC_KEYS, ...CONCENTRATION_NUMERIC_KEYS]),
 ];
 
 const colors = {
@@ -53,6 +71,14 @@ const state = {
   configPath: null,
   configMode: "defaults",
   settingsCollapsed: false,
+  learningRule: "mass_redistribution",
+  modelType: "spiking",
+  directionMode: "outputs_minus_inputs",
+  options: {
+    learning_rules: [],
+    model_types: [],
+    direction_modes: [],
+  },
 };
 
 const elements = {
@@ -88,6 +114,9 @@ const elements = {
 elements.useTargetBonus = document.getElementById("trainer-use_target_bonus");
 elements.signedWeights = document.getElementById("trainer-signed_weights");
 elements.hiddenLayout = document.getElementById("trainer-hidden_layers");
+elements.learningRule = document.getElementById("trainer-learning_rule");
+elements.modelType = document.getElementById("trainer-model_type");
+elements.directionMode = document.getElementById("trainer-direction_mode");
 
 function buildInputMap(target, keys) {
   keys.forEach(key => {
@@ -100,6 +129,9 @@ function buildInputMap(target, keys) {
 
 buildInputMap("dataset", DATASET_KEYS);
 buildInputMap("trainer", TRAINER_NUMERIC_KEYS);
+
+updateRuleVisibility(state.learningRule);
+updateModelVisibility(state.modelType);
 
 if (elements.autoSpeed) {
   elements.autoSpeed.value = String(state.autoInterval);
@@ -147,6 +179,68 @@ function updateConfigSource() {
 
 function updateReloadAvailability() {
   elements.reloadBtn.disabled = !state.configPath;
+}
+
+function updateRuleVisibility(rule) {
+  const normalized = (rule || "mass_redistribution").toLowerCase();
+  state.learningRule = normalized;
+  if (elements.learningRule && elements.learningRule.value !== normalized) {
+    elements.learningRule.value = normalized;
+  }
+  document.querySelectorAll(".settings-group[data-rule]").forEach(group => {
+    const targetRule = group.dataset.rule || "mass_redistribution";
+    group.classList.toggle("hidden", targetRule !== normalized);
+  });
+}
+
+function updateModelVisibility(model) {
+  const normalized = (model || "spiking").toLowerCase();
+  state.modelType = normalized;
+  if (elements.modelType && elements.modelType.value !== normalized) {
+    elements.modelType.value = normalized;
+  }
+  document.querySelectorAll(".settings-group[data-model]").forEach(group => {
+    const targetModel = group.dataset.model || "spiking";
+    group.classList.toggle("hidden", targetModel !== normalized);
+  });
+}
+
+function populateSelect(selectElement, options = [], selected) {
+  if (!selectElement) {
+    return;
+  }
+  const previous = selectElement.value;
+  selectElement.innerHTML = "";
+  options.forEach(option => {
+    const optionNode = document.createElement("option");
+    optionNode.value = option.key;
+    optionNode.textContent = option.label || option.key;
+    selectElement.appendChild(optionNode);
+  });
+
+  const keys = options.map(option => option.key);
+  let desired = selected;
+  if (!desired || !keys.includes(desired)) {
+    desired = keys.includes(previous) ? previous : keys[0];
+  }
+  if (desired) {
+    selectElement.value = desired;
+  }
+}
+
+function updateOptions(options) {
+  if (!options) {
+    return;
+  }
+  state.options = {
+    learning_rules: Array.isArray(options.learning_rules) ? options.learning_rules : state.options.learning_rules,
+    model_types: Array.isArray(options.model_types) ? options.model_types : state.options.model_types,
+    direction_modes: Array.isArray(options.direction_modes) ? options.direction_modes : state.options.direction_modes,
+  };
+
+  populateSelect(elements.learningRule, state.options.learning_rules, state.learningRule);
+  populateSelect(elements.modelType, state.options.model_types, state.modelType);
+  populateSelect(elements.directionMode, state.options.direction_modes, state.directionMode);
 }
 
 function setBusy(flag) {
@@ -580,7 +674,26 @@ function handleAutoSpeedChange(event) {
   }
 }
 
+function handleRuleChange(event) {
+  updateRuleVisibility(event.target.value);
+}
+
+function handleModelTypeChange(event) {
+  updateModelVisibility(event.target.value);
+}
+
+function handleDirectionModeChange(event) {
+  state.directionMode = event.target.value || state.directionMode;
+}
+
 function populateSettings(config) {
+  const direction = config.direction_mode || state.directionMode || "outputs_minus_inputs";
+  state.directionMode = direction;
+  populateSelect(elements.directionMode, state.options.direction_modes, direction);
+
+  populateSelect(elements.learningRule, state.options.learning_rules, config.learning_rule || state.learningRule);
+  populateSelect(elements.modelType, state.options.model_types, config.model_type || state.modelType);
+
   DATASET_KEYS.forEach(key => {
     const element = elements.dataset[key];
     if (element) {
@@ -593,7 +706,7 @@ function populateSettings(config) {
     const element = elements.trainer[key];
     if (element) {
       const value = config[key];
-      element.value = value ?? "";
+      element.value = value === undefined || value === null ? "" : value;
     }
   });
 
@@ -611,6 +724,12 @@ function populateSettings(config) {
     const enabled = config.signed_weights !== false;
     elements.signedWeights.checked = enabled;
   }
+
+  const rule = config.learning_rule || "mass_redistribution";
+  updateRuleVisibility(rule);
+
+  const model = config.model_type || "spiking";
+  updateModelVisibility(model);
 }
 
 function parseHiddenLayout(raw) {
@@ -686,6 +805,18 @@ function gatherSettings() {
     payload.signed_weights = elements.signedWeights.checked;
   }
 
+  if (elements.learningRule) {
+    payload.learning_rule = elements.learningRule.value || state.learningRule;
+  }
+
+  if (elements.modelType) {
+    payload.model_type = elements.modelType.value || state.modelType;
+  }
+
+  if (elements.directionMode) {
+    payload.direction_mode = elements.directionMode.value || state.directionMode;
+  }
+
   return payload;
 }
 
@@ -713,6 +844,7 @@ async function applySettings() {
     });
     state.config = response.config;
     state.configMode = "override";
+    updateOptions(response.options || state.options);
     buildNetwork(response.topology);
     populateSettings(state.config);
     clearOutputs();
@@ -740,6 +872,7 @@ async function reloadConfig() {
     const response = await fetchJSON("/api/reload", { method: "POST" });
     state.config = response.config;
     state.configMode = "file";
+    updateOptions(response.options || state.options);
     buildNetwork(response.topology);
     populateSettings(state.config);
     clearOutputs();
@@ -777,6 +910,7 @@ async function bootstrap() {
     state.config = configResponse.config;
     state.configPath = configResponse.config_path || null;
     state.configMode = configResponse.config_path ? "file" : "defaults";
+    updateOptions(configResponse.options);
     populateSettings(state.config);
     updateConfigSource();
     updateReloadAvailability();
@@ -804,6 +938,9 @@ elements.applyBtn.addEventListener("click", applySettings);
 elements.reloadBtn.addEventListener("click", reloadConfig);
 elements.settingsToggle.addEventListener("click", toggleSettings);
 elements.tabButtons.forEach(button => button.addEventListener("click", handleTabClick));
+elements.learningRule?.addEventListener("change", handleRuleChange);
+elements.modelType?.addEventListener("change", handleModelTypeChange);
+elements.directionMode?.addEventListener("change", handleDirectionModeChange);
 
 window.addEventListener("beforeunload", () => {
   stopAuto();

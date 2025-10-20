@@ -83,6 +83,24 @@
           </div>
         </div>
         <div class="settings-group">
+          <h3>Model</h3>
+          <div class="settings-grid">
+            <label title="Choose the network template used for interactive training.">
+              Type
+              <select id="trainer-model_type"></select>
+            </label>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h3>Learning Rule</h3>
+          <div class="settings-grid">
+            <label title="Choose which local learning dynamic to apply when updating synapses.">
+              Mode
+              <select id="trainer-learning_rule"></select>
+            </label>
+          </div>
+        </div>
+        <div class="settings-group" data-rule="mass_redistribution">
           <h3>Mass Redistribution</h3>
           <div class="settings-grid">
             <label title="Blend factor for updating each neuron's mass distribution after a batch.">
@@ -163,7 +181,48 @@
             </label>
           </div>
         </div>
-        <div class="settings-group">
+        <div class="settings-group" data-rule="concentration">
+          <h3>Concentration Gradient</h3>
+          <div class="settings-grid">
+            <label title="Choose how to derive the push direction for synaptic updates.">
+              Direction Mode
+              <select id="trainer-direction_mode"></select>
+            </label>
+            <label title="How aggressively neurons that outperformed the mean push their connections forward when loss improves.">
+              Push Rate
+              <input id="trainer-push_rate" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="Penalty applied to below-average neurons to suppress their influence.">
+              Suppress Rate
+              <input id="trainer-suppress_rate" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="Base scaling for synaptic adjustments after weighting by energy punishment.">
+              Step Scale
+              <input id="trainer-step_scale" type="number" step="0.001" data-type="float" />
+            </label>
+            <label title="Slope relating cumulative firing energy to the applied punishment.">
+              Energy Slope
+              <input id="trainer-energy_slope" type="number" step="0.1" data-type="float" />
+            </label>
+            <label title="Momentum used to smooth the running energy estimate.">
+              Energy Momentum
+              <input id="trainer-energy_momentum" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="Momentum for the neuron-specific baseline used when contrasting deltas.">
+              Concentration Momentum
+              <input id="trainer-concentration_momentum" type="number" step="0.01" data-type="float" />
+            </label>
+            <label title="Minimum improvement required to treat a batch as progress.">
+              Loss Tolerance
+              <input id="trainer-loss_tolerance" type="number" step="0.00001" data-type="float" />
+            </label>
+            <label title="Optional clamp that bounds synaptic magnitude after each update. Leave blank to disable.">
+              Weight Clamp
+              <input id="trainer-weight_clamp" type="number" step="0.1" data-type="float" />
+            </label>
+          </div>
+        </div>
+        <div class="settings-group" data-model="spiking">
           <h3>Spiking Layer</h3>
           <div class="settings-grid">
             <label title="Comma-separated hidden layer sizes, e.g. 12,8 for two layers.">

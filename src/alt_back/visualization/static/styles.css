@@ -203,6 +203,10 @@ label {
   gap: 0.5rem;
 }
 
+.settings-group.hidden {
+  display: none;
+}
+
 .settings-group h3 {
   margin: 0;
   font-size: 1rem;
@@ -223,7 +227,8 @@ label {
   color: #94a3b8;
 }
 
-.settings-grid input {
+.settings-grid input,
+.settings-grid select {
   padding: 0.35rem 0.5rem;
   border-radius: 0.4rem;
   border: 1px solid rgba(148, 163, 184, 0.3);

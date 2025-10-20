@@ -1,18 +1,42 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace, fields, asdict
-from typing import Any, Dict
+from typing import Any, Dict, Iterable
 
 import torch
 from torch import nn
 import yaml
 
 from ..backward.mass_redistribution import MassRedistributionBackwardStrategy
+from ..backward.concentration import ConcentrationGradientBackwardStrategy
 from ..data.synthetic import SyntheticDatasetConfig, create_dataloaders
 from ..models.spiking import TinySpikingNetwork
+from ..models.synthetic import SyntheticDenseNetwork
 from ..optim.torch_optimizer import TorchOptimizerStrategy
 from ..training.context import BatchContext
 from ..utils.activations import ActivationRecorder
+
+
+LEARNING_RULE_LABELS: Dict[str, str] = {
+    "mass_redistribution": "Mass Redistribution",
+    "concentration": "Concentration Gradient",
+}
+
+MODEL_TYPE_LABELS: Dict[str, str] = {
+    "spiking": "Spiking (Tiny Network)",
+    "dense": "Dense (Feedforward)",
+}
+
+CONCENTRATION_DIRECTION_LABELS: Dict[str, str] = {
+    "outputs_minus_inputs": "Outputs - Inputs",
+    "inputs_minus_outputs": "Inputs - Outputs (flip)",
+    "weight_sign": "Weight Sign",
+    "raw_mean": "Raw Mean (no sign)",
+}
+
+
+def _option_list(labels: Dict[str, str]) -> list[dict[str, str]]:
+    return [{"key": key, "label": value} for key, value in labels.items()]
 
 
 @dataclass
@@ -23,16 +47,18 @@ class TrainerConfig:
         default_factory=lambda: SyntheticDatasetConfig(
             num_features=5,
             threshold=1.0,
-            num_train=2048,
+            num_train=4096,
             num_test=1024,
             seed=13,
             batch_size=64,
             feature_min=-1.5,
             feature_max=2.5,
-            noise_std=0.25,
+            noise_std=0.0,
         )
     )
     device: str = "cpu"
+    model_type: str = "spiking"
+    learning_rule: str = "mass_redistribution"
     release_rate: float = 0.25
     reward_gain: float = 0.6
     base_release: float = 0.1
@@ -42,9 +68,9 @@ class TrainerConfig:
     column_competition: float = 0.3
     noise_std: float = 0.01
     mass_budget: float = 5.0
-    spike_threshold: float = 0.0
+    spike_threshold: float = 0.1
     spike_temperature: float = 0.3
-    hidden_layers: list[int] = field(default_factory=lambda: [10])
+    hidden_layers: list[int] = field(default_factory=lambda: [12, 12, 8])
     signed_weights: bool = True
     use_target_bonus: bool = True
     target_gain: float = 0.5
@@ -53,6 +79,15 @@ class TrainerConfig:
     affinity_temperature: float = 1.5
     sign_consistency_strength: float = 0.2
     sign_consistency_momentum: float = 0.9
+    push_rate: float = 0.3
+    suppress_rate: float = 0.1
+    step_scale: float = 0.02
+    energy_slope: float = 1.4
+    energy_momentum: float = 0.5
+    concentration_momentum: float = 0.85
+    loss_tolerance: float = 1e-5
+    weight_clamp: float | None = 6.5
+    direction_mode: str = "outputs_minus_inputs"
     snapshot_interval: int = 1
     evaluate_interval: int = 1
 
@@ -65,15 +100,93 @@ class TinySpikingTrainer:
         self.device = torch.device(self.config.device)
         self.loss_fn = nn.CrossEntropyLoss()
 
-        self.model = TinySpikingNetwork(
+        self.config.model_type = (self.config.model_type or "spiking").lower()
+        self.model_type = self._normalise_choice(self.config.model_type, MODEL_TYPE_LABELS.keys(), default="spiking")
+        self.model = self._build_model().to(self.device)
+
+        self.config.direction_mode = self._normalise_choice(
+            getattr(self.config, "direction_mode", "outputs_minus_inputs"),
+            CONCENTRATION_DIRECTION_LABELS.keys(),
+            default="outputs_minus_inputs",
+        )
+        self.direction_mode = self.config.direction_mode
+
+        initial_rule = (self.config.learning_rule or "mass_redistribution").lower()
+        self.learning_rule = self._normalise_choice(initial_rule, LEARNING_RULE_LABELS.keys(), default="mass_redistribution")
+        self.backward_strategy = self._build_backward_strategy()
+        self.optimizer_strategy = TorchOptimizerStrategy("torch.optim.SGD", lr=0.0)
+        self.optimizer_strategy.setup(self.model)
+
+        self.global_step = 0
+        self.snapshot_interval = max(int(self.config.snapshot_interval), 1)
+        self.evaluate_interval = max(int(self.config.evaluate_interval), 1)
+        self._last_visuals: dict[str, Any] = self._empty_visuals()
+        self._last_eval: dict[str, float] | None = None
+        self._build_data()
+
+    def options(self) -> Dict[str, list[dict[str, str]]]:
+        return {
+            "learning_rules": _option_list(LEARNING_RULE_LABELS),
+            "model_types": _option_list(MODEL_TYPE_LABELS),
+            "direction_modes": _option_list(CONCENTRATION_DIRECTION_LABELS),
+        }
+
+    @staticmethod
+    def _normalise_choice(value: str, valid: Iterable[str], default: str) -> str:
+        normalized = (value or default).lower()
+        if normalized not in valid:
+            return default
+        return normalized
+
+    def _build_model(self) -> nn.Module:
+        if self.model_type == "dense":
+            model = SyntheticDenseNetwork(
+                input_neurons=self.config.dataset.num_features,
+                hidden_layers=self.config.hidden_layers,
+                output_neurons=2,
+                activation="relu",
+            )
+            self.config.model_type = "dense"
+            return model
+        # default spiking
+        model = TinySpikingNetwork(
             input_neurons=self.config.dataset.num_features,
             hidden_layers=self.config.hidden_layers,
             output_neurons=2,
             spike_threshold=self.config.spike_threshold,
             spike_temperature=self.config.spike_temperature,
-        ).to(self.device)
+        )
+        self.config.model_type = "spiking"
+        return model
 
-        self.backward_strategy = MassRedistributionBackwardStrategy(
+    def _build_backward_strategy(self) -> MassRedistributionBackwardStrategy | ConcentrationGradientBackwardStrategy:
+        rule = self._normalise_choice(
+            (self.config.learning_rule or self.learning_rule or "mass_redistribution"),
+            LEARNING_RULE_LABELS.keys(),
+            default="mass_redistribution",
+        )
+        self.learning_rule = rule
+        self.config.learning_rule = rule
+        direction_mode = self._normalise_choice(
+            getattr(self.config, "direction_mode", self.direction_mode),
+            CONCENTRATION_DIRECTION_LABELS.keys(),
+            default="outputs_minus_inputs",
+        )
+        self.direction_mode = direction_mode
+        self.config.direction_mode = direction_mode
+        if rule == "concentration":
+            return ConcentrationGradientBackwardStrategy(
+                push_rate=self.config.push_rate,
+                suppress_rate=self.config.suppress_rate,
+                step_scale=self.config.step_scale,
+                energy_slope=self.config.energy_slope,
+                energy_momentum=self.config.energy_momentum,
+                concentration_momentum=self.config.concentration_momentum,
+                loss_tolerance=self.config.loss_tolerance,
+                weight_clamp=self.config.weight_clamp,
+                direction_mode=direction_mode,
+            )
+        return MassRedistributionBackwardStrategy(
             release_rate=self.config.release_rate,
             reward_gain=self.config.reward_gain,
             base_release=self.config.base_release,
@@ -92,15 +205,6 @@ class TinySpikingTrainer:
             sign_consistency_strength=self.config.sign_consistency_strength,
             sign_consistency_momentum=self.config.sign_consistency_momentum,
         )
-        self.optimizer_strategy = TorchOptimizerStrategy("torch.optim.SGD", lr=0.0)
-        self.optimizer_strategy.setup(self.model)
-
-        self.global_step = 0
-        self.snapshot_interval = max(int(self.config.snapshot_interval), 1)
-        self.evaluate_interval = max(int(self.config.evaluate_interval), 1)
-        self._last_visuals: dict[str, Any] = self._empty_visuals()
-        self._last_eval: dict[str, float] | None = None
-        self._build_data()
 
     def _build_data(self) -> None:
         self.train_loader, self.test_loader = create_dataloaders(self.config.dataset)
@@ -119,6 +223,7 @@ class TinySpikingTrainer:
         self.global_step = 0
         self._last_visuals = self._empty_visuals()
         self._last_eval = None
+        self.backward_strategy = self._build_backward_strategy()
 
     @staticmethod
     def _init_weights(module: nn.Module) -> None:
@@ -382,6 +487,24 @@ def trainer_config_from_dict(
         raw_updates["snapshot_interval"] = _coerce_positive_int(raw_updates["snapshot_interval"], minimum=1)
     if "evaluate_interval" in raw_updates:
         raw_updates["evaluate_interval"] = _coerce_positive_int(raw_updates["evaluate_interval"], minimum=1)
+    if "learning_rule" in raw_updates:
+        rule = str(raw_updates["learning_rule"]).strip().lower()
+        if rule not in LEARNING_RULE_LABELS:
+            msg = f"Unsupported learning rule: {raw_updates['learning_rule']!r}"
+            raise ValueError(msg)
+        raw_updates["learning_rule"] = rule
+    if "model_type" in raw_updates:
+        model = str(raw_updates["model_type"]).strip().lower()
+        if model not in MODEL_TYPE_LABELS:
+            msg = f"Unsupported model type: {raw_updates['model_type']!r}"
+            raise ValueError(msg)
+        raw_updates["model_type"] = model
+    if "direction_mode" in raw_updates:
+        direction = str(raw_updates["direction_mode"]).strip().lower()
+        if direction not in CONCENTRATION_DIRECTION_LABELS:
+            msg = f"Unsupported direction mode: {raw_updates['direction_mode']!r}"
+            raise ValueError(msg)
+        raw_updates["direction_mode"] = direction
 
     top_level_updates = _filter_updates(config, raw_updates)
     if top_level_updates:
@@ -447,6 +570,14 @@ def trainer_config_from_yaml(path: str, base: TrainerConfig | None = None) -> Tr
     elif "hidden_neurons" in model_params:
         payload["hidden_layers"] = _ensure_int_list(model_params["hidden_neurons"])
 
+    target_model = model_section.get("target") or ""
+    target_lower = str(target_model).lower()
+    if target_lower:
+        if "spiking" in target_lower:
+            payload["model_type"] = "spiking"
+        else:
+            payload["model_type"] = "dense"
+
     for key in ("spike_threshold", "spike_temperature", "input_neurons"):
         if key in model_params:
             if key == "input_neurons":
@@ -455,25 +586,45 @@ def trainer_config_from_yaml(path: str, base: TrainerConfig | None = None) -> Tr
                 payload[key] = model_params[key]
 
     backward_params = backward_section.get("params", {})
-    for key in (
-        "release_rate",
-        "reward_gain",
-        "base_release",
-        "decay",
-        "temperature",
-        "efficiency_bonus",
-        "column_competition",
-        "noise_std",
-        "mass_budget",
-        "target_gain",
-        "affinity_strength",
-        "affinity_decay",
-        "affinity_temperature",
-        "sign_consistency_strength",
-        "sign_consistency_momentum",
-    ):
-        if key in backward_params:
-            payload[key] = backward_params[key]
+    backward_target = backward_section.get("target", "") or ""
+
+    if backward_target.endswith("ConcentrationGradientBackwardStrategy"):
+        payload["learning_rule"] = "concentration"
+        for key in (
+            "push_rate",
+            "suppress_rate",
+            "step_scale",
+            "energy_slope",
+            "energy_momentum",
+            "concentration_momentum",
+            "loss_tolerance",
+            "weight_clamp",
+            "direction_mode",
+        ):
+            if key in backward_params:
+                payload[key] = backward_params[key]
+    else:
+        if backward_target:
+            payload["learning_rule"] = "mass_redistribution"
+        for key in (
+            "release_rate",
+            "reward_gain",
+            "base_release",
+            "decay",
+            "temperature",
+            "efficiency_bonus",
+            "column_competition",
+            "noise_std",
+            "mass_budget",
+            "target_gain",
+            "affinity_strength",
+            "affinity_decay",
+            "affinity_temperature",
+            "sign_consistency_strength",
+            "sign_consistency_momentum",
+        ):
+            if key in backward_params:
+                payload[key] = backward_params[key]
 
     if "signed_weights" in backward_params:
         payload["signed_weights"] = _coerce_bool(backward_params["signed_weights"])

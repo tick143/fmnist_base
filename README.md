@@ -33,6 +33,14 @@ To experiment with the loss-free mass redistribution strategy that reallocates s
 alt-back-train --config configs/mass_redistribution.yaml
 ```
 
+To try the concentration-gradient energy minimisation rule that penalises sequential firing cost instead of gradients:
+
+```bash
+alt-back-train --config configs/concentration.yaml
+```
+
+This configuration swaps Fashion-MNIST for the fast synthetic threshold dataset so you get rapid feedback while tuning concentration dynamics.
+
 ### Tiny spiking playground
 
 For a lightweight, synthetic demo that highlights how the mass-redistribution rule manipulates weights step-by-step, launch the interactive visualiser:
@@ -41,7 +49,7 @@ For a lightweight, synthetic demo that highlights how the mass-redistribution ru
 alt-back-viz --port 8000
 ```
 
-This spins up a FastAPI server with a spiking network trained on a balanced synthetic dataset (`y = 1` when `sum(x) > 1.0`). Inputs are sampled from a widened range (default `[-1.5, 2.5]`) with injected noise so the early synapses stay lively. The learning rule is now “neurotransmitter redistribution”: after every batch we release a reward-dependent pool of transmitter, push it through co-activity/efficiency signals, and redistribute each neuron’s incoming mass without gradients. Persistent affinities, column competition, and sign-consistency keep pathways from collapsing. You can tweak the dataset params (`feature_min`, `feature_max`, `noise_std`, `threshold`), reshape the hidden stack (`hidden_layers` accepts an arbitrary comma-separated list), or adjust the redistribution knobs (release rate, reward gain, decay, affinity/sign strengths, column competition, mass budget, noise) from the UI. Flip the target bonus toggle off to stay fully reward-agnostic. Edit `configs/tiny_spiking.yaml`, reload it straight from the UI, or adjust everything live in the browser panel. The web UI exposes single-step and auto-stepping controls, live topology visualisation (orange/blue edges encode positive/negative weight strength), per-synapse deltas, spike-rate heatmaps, and running evaluation metrics.
+This spins up a FastAPI server with a spiking network trained on a balanced synthetic dataset (`y = 1` when `sum(x) > 1.0`). Inputs are sampled from a widened range (default `[-1.5, 2.5]`) with injected noise so the early synapses stay lively. The default learning rule is “neurotransmitter redistribution”: after every batch we release a reward-dependent pool of transmitter, push it through co-activity/efficiency signals, and redistribute each neuron’s incoming mass without gradients. Persistent affinities, column competition, and sign-consistency keep pathways from collapsing. Flip the rule selector to “Concentration Gradient” to watch the energy-minimising mechanism push/suppress synapses instead—when active, that panel swaps in the concentration controls (push/suppress rates, energy slope/momentum, loss tolerance, direction mode, clamp). If the spiking dynamics don’t match your experiment, switch the Model selector to the dense feedforward variant and rerun the same task with sigmoid-activated units. You can tweak the dataset params (`feature_min`, `feature_max`, `noise_std`, `threshold`), reshape the hidden stack (`hidden_layers` accepts an arbitrary comma-separated list), or adjust the redistribution knobs (release rate, reward gain, decay, affinity/sign strengths, column competition, mass budget, noise) from the UI. Flip the target bonus toggle off to stay fully reward-agnostic. Edit `configs/tiny_spiking.yaml`, reload it straight from the UI, or adjust everything live in the browser panel. The web UI exposes single-step and auto-stepping controls, live topology visualisation (orange/blue edges encode positive/negative weight strength), per-synapse deltas, spike-rate heatmaps, and running evaluation metrics.
 
 #### Tiny spiking sweep
 
@@ -80,3 +88,4 @@ Custom backwards/optimiser implementations receive a rich `BatchContext` object 
 - Extend the model zoo with modules that emulate growth or developmental processes
 - Experiment with the provided `CoFireBackwardStrategy` that minimises layer entropy and encourages sequential neurons to co-activate
 - Explore the `MassRedistributionBackwardStrategy` for backprop-free, magnitude-constrained plasticity dynamics
+- Test the `ConcentrationGradientBackwardStrategy` to couple energy-aware punishment with concentration-driven synaptic shifts; the tiny spiking playground now exposes rule and model selectors so you can live-toggle between redistribution/concentration dynamics and spiking/dense architectures on the same synthetic task.

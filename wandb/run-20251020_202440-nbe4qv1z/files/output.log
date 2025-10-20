@@ -1,0 +1,48 @@
+
+Epoch 1/12 -> device=mps
+[train] batch 50/64 loss=0.8078 acc=50.12%
+[epoch 1] train_loss=0.8436 train_acc=50.00% | test_loss=1.0367 test_acc=50.00%
+
+Epoch 2/12 -> device=mps
+[train] batch 50/64 loss=1.2506 acc=49.88%
+[epoch 2] train_loss=1.3093 train_acc=50.00% | test_loss=1.6471 test_acc=48.83%
+
+Epoch 3/12 -> device=mps
+[train] batch 50/64 loss=1.8926 acc=40.47%
+[epoch 3] train_loss=2.0577 train_acc=36.47% | test_loss=2.9943 test_acc=21.39%
+
+Epoch 4/12 -> device=mps
+[train] batch 50/64 loss=4.6350 acc=9.88%
+[epoch 4] train_loss=5.2021 train_acc=8.57% | test_loss=7.4979 test_acc=3.61%
+
+Epoch 5/12 -> device=mps
+[train] batch 50/64 loss=10.0346 acc=5.19%
+[epoch 5] train_loss=11.1562 train_acc=5.49% | test_loss=15.3244 test_acc=8.79%
+
+Epoch 6/12 -> device=mps
+[train] batch 50/64 loss=16.9649 acc=15.53%
+[epoch 6] train_loss=16.3065 train_acc=17.97% | test_loss=15.1827 test_acc=28.61%
+
+Epoch 7/12 -> device=mps
+[train] batch 50/64 loss=20.3852 acc=17.22%
+[epoch 7] train_loss=21.1750 train_acc=16.14% | test_loss=21.8154 test_acc=12.99%
+
+Epoch 8/12 -> device=mps
+[train] batch 50/64 loss=21.3347 acc=21.97%
+[epoch 8] train_loss=21.1961 train_acc=22.07% | test_loss=20.2085 test_acc=21.88%
+
+Epoch 9/12 -> device=mps
+[train] batch 50/64 loss=19.2154 acc=29.94%
+[epoch 9] train_loss=18.6142 train_acc=32.45% | test_loss=15.0978 test_acc=50.00%
+
+Epoch 10/12 -> device=mps
+[train] batch 50/64 loss=18.3156 acc=45.22%
+[epoch 10] train_loss=19.1494 train_acc=46.56% | test_loss=24.1162 test_acc=50.00%
+
+Epoch 11/12 -> device=mps
+[train] batch 50/64 loss=26.4971 acc=49.97%
+[epoch 11] train_loss=27.2288 train_acc=50.00% | test_loss=30.8260 test_acc=50.00%
+
+Epoch 12/12 -> device=mps
+[train] batch 50/64 loss=34.5797 acc=50.09%
+[epoch 12] train_loss=35.7011 train_acc=50.00% | test_loss=40.9746 test_acc=50.00%

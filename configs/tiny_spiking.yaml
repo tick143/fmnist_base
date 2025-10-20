@@ -2,7 +2,7 @@ training:
   epochs: 12
   batch_size: 64
   log_interval: 4
-  device: cuda
+  device: mps
   seed: 13
   num_workers: 0
 

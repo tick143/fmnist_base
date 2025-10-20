@@ -13,6 +13,7 @@ src/alt_back/backward/__init__.py
 src/alt_back/backward/autograd.py
 src/alt_back/backward/base.py
 src/alt_back/backward/cofire.py
+src/alt_back/backward/concentration.py
 src/alt_back/backward/mass_redistribution.py
 src/alt_back/data/__init__.py
 src/alt_back/data/fashion.py
@@ -25,6 +26,8 @@ src/alt_back/optim/__init__.py
 src/alt_back/optim/base.py
 src/alt_back/optim/null_optimizer.py
 src/alt_back/optim/torch_optimizer.py
+src/alt_back/sweeps/__init__.py
+src/alt_back/sweeps/tiny_spiking.py
 src/alt_back/training/__init__.py
 src/alt_back/training/context.py
 src/alt_back/training/loop.py

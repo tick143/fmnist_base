@@ -3,6 +3,7 @@
 from .autograd import AutogradBackwardStrategy
 from .base import BackwardStrategy
 from .cofire import CoFireBackwardStrategy
+from .concentration import ConcentrationGradientBackwardStrategy
 from .mass_redistribution import MassRedistributionBackwardStrategy
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "AutogradBackwardStrategy",
     "CoFireBackwardStrategy",
     "MassRedistributionBackwardStrategy",
+    "ConcentrationGradientBackwardStrategy",
 ]

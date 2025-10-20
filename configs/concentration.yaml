@@ -1,0 +1,54 @@
+training:
+  epochs: 100
+  batch_size: 64
+  log_interval: 50
+  device: auto
+  seed: 13
+
+dataset:
+  target: alt_back.data.synthetic.create_dataloaders
+  params:
+    num_features: 5
+    threshold: 1.0
+    feature_min: -1.5
+    feature_max: 2.5
+    noise_std: 0.0
+    num_train: 4096
+    num_test: 1024
+    batch_size: 64
+    shuffle: true
+    seed: 13
+
+model:
+  target: alt_back.models.spiking.TinySpikingNetwork
+  params:
+    input_neurons: 5
+    hidden_layers: [12, 12, 8]
+    output_neurons: 2
+    spike_threshold: 0.1
+    spike_temperature: 0.3
+
+backward:
+  target: alt_back.backward.concentration.ConcentrationGradientBackwardStrategy
+  params:
+    push_rate: 0.3
+    suppress_rate: 0.05
+    step_scale: 0.02
+    energy_slope: 1.4
+    energy_momentum: 0.5
+    concentration_momentum: 0.85
+    loss_tolerance: 1.0e-5
+    weight_clamp: 6.5
+    direction_mode: outputs_minus_inputs
+
+optimizer:
+  target: alt_back.optim.null_optimizer.NullOptimizerStrategy
+
+logging:
+  enabled: true
+  project: alt-back
+  run_name: concentration-gradients
+  tags: ["concentration", "energy-minimisation", "gradient-free"]
+  log_logits: true
+  log_probabilities: true
+  log_entropies: true

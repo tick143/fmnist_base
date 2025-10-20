@@ -59,6 +59,7 @@ def create_app(
         return {
             "config": trainer_config_to_dict(app.state.trainer.config),
             "config_path": app.state.config_path,
+            "options": app.state.trainer.options(),
         }
 
     @app.post("/api/reset")
@@ -80,6 +81,7 @@ def create_app(
             "status": "reconfigured",
             "config": updated_config,
             "topology": app.state.trainer.topology(),
+            "options": app.state.trainer.options(),
         }
 
     @app.post("/api/reload")
@@ -99,6 +101,7 @@ def create_app(
             "status": "reloaded",
             "config": updated_config,
             "topology": app.state.trainer.topology(),
+            "options": app.state.trainer.options(),
         }
 
     @app.post("/api/step")

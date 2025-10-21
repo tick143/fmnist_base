@@ -22,6 +22,45 @@ class EpochStats:
     accuracy: float
 
 
+def run_training_batch(
+    model: torch.nn.Module,
+    inputs: torch.Tensor,
+    targets: torch.Tensor,
+    backward_strategy: BackwardStrategy,
+    optimizer_strategy: OptimizerStrategy,
+    device: torch.device,
+    loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+    epoch: int,
+    batch_idx: int,
+) -> Tuple[BatchContext, torch.Tensor, torch.Tensor]:
+    inputs = inputs.to(device)
+    targets = targets.to(device)
+
+    optimizer_strategy.zero_grad(model=model)
+    backward_strategy.zero_grad(model=model)
+
+    with ActivationRecorder(model) as recorder:
+        outputs = model(inputs)
+        loss = loss_fn(outputs, targets)
+
+        context = BatchContext(
+            epoch=epoch,
+            batch_idx=batch_idx,
+            model=model,
+            inputs=inputs,
+            targets=targets,
+            outputs=outputs,
+            loss=loss,
+            device=device,
+            activations=dict(recorder.records),
+        )
+
+        backward_strategy.backward(context)
+        optimizer_strategy.step(context)
+
+    return context, outputs, loss
+
+
 def train_one_epoch(
     model: torch.nn.Module,
     dataloader: DataLoader,
@@ -41,36 +80,23 @@ def train_one_epoch(
     total = 0
 
     for batch_idx, (inputs, targets) in enumerate(dataloader):
-        inputs, targets = inputs.to(device), targets.to(device)
+        context, outputs, loss = run_training_batch(
+            model=model,
+            inputs=inputs,
+            targets=targets,
+            backward_strategy=backward_strategy,
+            optimizer_strategy=optimizer_strategy,
+            device=device,
+            loss_fn=loss_fn,
+            epoch=epoch,
+            batch_idx=batch_idx,
+        )
 
-        optimizer_strategy.zero_grad(model=model)
-        backward_strategy.zero_grad(model=model)
-
-        with ActivationRecorder(model) as recorder:
-            outputs = model(inputs)
-            loss = loss_fn(outputs, targets)
-
-            context = BatchContext(
-                epoch=epoch,
-                batch_idx=batch_idx,
-                model=model,
-                inputs=inputs,
-                targets=targets,
-                outputs=outputs,
-                loss=loss,
-                device=device,
-                activations=dict(recorder.records),
-            )
-
-            backward_strategy.backward(context)
-
-            # optimizer step after gradients are populated
-            optimizer_strategy.step(context)
-
-        running_loss += loss.item() * inputs.size(0)
+        batch_size = context.inputs.size(0)
+        running_loss += loss.item() * batch_size
         preds = outputs.argmax(dim=1)
-        correct += preds.eq(targets).sum().item()
-        total += targets.size(0)
+        correct += preds.eq(context.targets).sum().item()
+        total += context.targets.size(0)
 
         if logger is not None and logger.enabled:
             probs = F.softmax(outputs.detach(), dim=1)
@@ -79,7 +105,7 @@ def train_one_epoch(
 
             log_payload = {
                 "train/loss": loss.item(),
-                "train/accuracy": preds.eq(targets).float().mean().item() * 100,
+                "train/accuracy": preds.eq(context.targets).float().mean().item() * 100,
                 "train/prediction_entropy": pred_metrics["entropy"],
                 "train/network_entropy": network_entropy,
             }

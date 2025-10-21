@@ -12,6 +12,8 @@ debug-core.log
 *.log
 *.out
 *.err
+__pycache__/
+*.pyc
 
 # Local virtualenvs
 .venv/

@@ -5,21 +5,22 @@ import torch
 import wandb
 
 from ..config import Config, WandbConfig
-from ..visualization.trainer import TrainerConfig
 
 
 class WandbLogger:
     """Log metrics and watch models with Weights & Biases."""
 
-    def __init__(self, config: Config | TrainerConfig) -> None:
-        if isinstance(config, TrainerConfig):
-            logging_data = config.logging
+    def __init__(self, config: Config | object) -> None:
+        logging_section = getattr(config, "logging", None)
+
+        if isinstance(logging_section, dict):
             self.config = WandbConfig()
-            for key, value in logging_data.items():
+            for key, value in logging_section.items():
                 if hasattr(self.config, key):
                     setattr(self.config, key, value)
             flat_config = asdict(config)
         else:
+            assert isinstance(config, Config)
             self.config = config.logging
             flat_config = self._flatten_config(config)
 

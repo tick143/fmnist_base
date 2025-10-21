@@ -4,19 +4,11 @@ from dataclasses import dataclass, field, replace, fields, asdict
 from typing import Any, Dict, Iterable
 
 import torch
-from torch import nn
 import yaml
 
-from ..backward.mass_redistribution import MassRedistributionBackwardStrategy
-from ..backward.concentration import ConcentrationGradientBackwardStrategy
-from ..data.synthetic import SyntheticDatasetConfig, create_dataloaders
-from ..models.spiking import TinySpikingNetwork
-from ..models.synthetic import SyntheticDenseNetwork
-from ..optim.torch_optimizer import TorchOptimizerStrategy
-from ..training.context import BatchContext
-from ..utils.activations import ActivationRecorder
-from ..utils.imports import import_from_string
-from ..config import DatasetConfig as FMNISTDatasetConfig, TrainingConfig as FMNISTTrainingConfig
+from ..data.synthetic import SyntheticDatasetConfig
+from ..training.components import build_components
+from ..training.loop import run_training_batch
 
 
 LEARNING_RULE_LABELS: Dict[str, str] = {
@@ -115,11 +107,9 @@ class TinySpikingTrainer:
     def __init__(self, config: TrainerConfig | None = None) -> None:
         self.config = config or TrainerConfig()
         self.device = torch.device(self.config.device)
-        self.loss_fn = nn.CrossEntropyLoss()
 
         self.config.model_type = (self.config.model_type or "spiking").lower()
         self.model_type = self._normalise_choice(self.config.model_type, MODEL_TYPE_LABELS.keys(), default="spiking")
-        self.model = self._build_model().to(self.device)
 
         self.config.direction_mode = self._normalise_choice(
             getattr(self.config, "direction_mode", "outputs_minus_inputs"),
@@ -130,16 +120,23 @@ class TinySpikingTrainer:
 
         initial_rule = (self.config.learning_rule or "mass_redistribution").lower()
         self.learning_rule = self._normalise_choice(initial_rule, LEARNING_RULE_LABELS.keys(), default="mass_redistribution")
-        self.backward_strategy = self._build_backward_strategy()
-        self.optimizer_strategy = TorchOptimizerStrategy("torch.optim.SGD", lr=0.0)
-        self.optimizer_strategy.setup(self.model)
+
+        self._synchronise_component_targets()
+        (
+            self.model,
+            self.backward_strategy,
+            self.optimizer_strategy,
+            self.loss_fn,
+            self.train_loader,
+            self.test_loader,
+        ) = build_components(self.config, self.device)
+        self._train_iter = iter(self.train_loader)
 
         self.global_step = 0
         self.snapshot_interval = max(int(self.config.snapshot_interval), 1)
         self.evaluate_interval = max(int(self.config.evaluate_interval), 1)
         self._last_visuals: dict[str, Any] = self._empty_visuals()
         self._last_eval: dict[str, float] | None = None
-        self._build_data()
 
     def options(self) -> Dict[str, list[dict[str, str]]]:
         return {
@@ -155,108 +152,36 @@ class TinySpikingTrainer:
             return default
         return normalized
 
-    def _build_model(self) -> nn.Module:
+    def _synchronise_component_targets(self) -> None:
         if self.model_type == "dense":
-            model = SyntheticDenseNetwork(
-                input_neurons=self.config.dataset.num_features,
-                hidden_layers=self.config.hidden_layers,
-                output_neurons=self.config.output_neurons,
-                activation="relu",
-            )
-            self.config.model_type = "dense"
-            return model
-        # default spiking
-        model = TinySpikingNetwork(
-            input_neurons=self.config.dataset.num_features,
-            hidden_layers=self.config.hidden_layers,
-            output_neurons=self.config.output_neurons,
-            spike_threshold=self.config.spike_threshold,
-            spike_temperature=self.config.spike_temperature,
-        )
-        self.config.model_type = "spiking"
-        return model
+            self.config.model_target = "alt_back.models.synthetic.SyntheticDenseNetwork"
+        else:
+            self.config.model_target = "alt_back.models.spiking.TinySpikingNetwork"
 
-    def _build_backward_strategy(self) -> MassRedistributionBackwardStrategy | ConcentrationGradientBackwardStrategy:
-        rule = self._normalise_choice(
-            (self.config.learning_rule or self.learning_rule or "mass_redistribution"),
-            LEARNING_RULE_LABELS.keys(),
-            default="mass_redistribution",
-        )
+        rule = self._normalise_choice(self.learning_rule, LEARNING_RULE_LABELS.keys(), default="mass_redistribution")
         self.learning_rule = rule
         self.config.learning_rule = rule
-        direction_mode = self._normalise_choice(
+        self.config.direction_mode = self._normalise_choice(
             getattr(self.config, "direction_mode", self.direction_mode),
             CONCENTRATION_DIRECTION_LABELS.keys(),
             default="outputs_minus_inputs",
         )
-        self.direction_mode = direction_mode
-        self.config.direction_mode = direction_mode
+        self.direction_mode = self.config.direction_mode
         if rule == "concentration":
-            return ConcentrationGradientBackwardStrategy(
-                push_rate=self.config.push_rate,
-                suppress_rate=self.config.suppress_rate,
-                step_scale=self.config.step_scale,
-                energy_slope=self.config.energy_slope,
-                energy_momentum=self.config.energy_momentum,
-                concentration_momentum=self.config.concentration_momentum,
-                loss_tolerance=self.config.loss_tolerance,
-                weight_clamp=self.config.weight_clamp,
-                direction_mode=direction_mode,
-            )
-        return MassRedistributionBackwardStrategy(
-            release_rate=self.config.release_rate,
-            reward_gain=self.config.reward_gain,
-            base_release=self.config.base_release,
-            decay=self.config.decay,
-            temperature=self.config.temperature,
-            efficiency_bonus=self.config.efficiency_bonus,
-            column_competition=self.config.column_competition,
-            noise_std=self.config.noise_std,
-            mass_budget=self.config.mass_budget,
-            signed_weights=self.config.signed_weights,
-            enable_target_bonus=self.config.use_target_bonus,
-            target_gain=self.config.target_gain,
-            affinity_strength=self.config.affinity_strength,
-            affinity_decay=self.config.affinity_decay,
-            affinity_temperature=self.config.affinity_temperature,
-            sign_consistency_strength=self.config.sign_consistency_strength,
-            sign_consistency_momentum=self.config.sign_consistency_momentum,
-        )
-
-    def _build_data(self) -> None:
-        # Respect dataset target if provided
-        target = (self.config.dataset_target or "").strip()
-        if target:
-            try:
-                loader_fn = import_from_string(target)
-            except Exception:
-                loader_fn = None
-            if loader_fn is not None:
-                # Special-case Fashion-MNIST helper which expects specific config dataclasses
-                if target.endswith("alt_back.data.fashion.dataloaders"):
-                    raw = dict(self.config.dataset_raw or {})
-                    # Defaults
-                    root = raw.get("root", "./data")
-                    download = bool(raw.get("download", True))
-                    augmentations = raw.get("augmentations", {})
-                    dcfg = FMNISTDatasetConfig(root=root, download=download, augmentations=augmentations)
-                    bsz = int(raw.get("batch_size", getattr(self.config.dataset, "batch_size", 64)))
-                    nworkers = int(raw.get("num_workers", 0))
-                    tcfg = FMNISTTrainingConfig(batch_size=bsz, num_workers=nworkers)
-                    self.train_loader, self.test_loader = loader_fn(dcfg, tcfg)
-                else:
-                    # Fallback: attempt calling with raw params only
-                    kwargs = dict(self.config.dataset_raw or {})
-                    result = loader_fn(**kwargs)
-                    if isinstance(result, tuple) and len(result) == 2:
-                        self.train_loader, self.test_loader = result
-                    else:
-                        # If custom target misbehaves, fall back to synthetic
-                        self.train_loader, self.test_loader = create_dataloaders(self.config.dataset)
-            else:
-                self.train_loader, self.test_loader = create_dataloaders(self.config.dataset)
+            self.config.backward_target = "alt_back.backward.concentration.ConcentrationGradientBackwardStrategy"
         else:
-            self.train_loader, self.test_loader = create_dataloaders(self.config.dataset)
+            self.config.backward_target = "alt_back.backward.mass_redistribution.MassRedistributionBackwardStrategy"
+
+    def _rebuild_components(self) -> None:
+        self._synchronise_component_targets()
+        (
+            self.model,
+            self.backward_strategy,
+            self.optimizer_strategy,
+            self.loss_fn,
+            self.train_loader,
+            self.test_loader,
+        ) = build_components(self.config, self.device)
         self._train_iter = iter(self.train_loader)
 
     def reset(self, seed: int | None = None) -> None:
@@ -267,19 +192,10 @@ class TinySpikingTrainer:
                 torch.cuda.manual_seed_all(seed)
             self.config.dataset.seed = seed
 
-        self.model.apply(self._init_weights)
-        self._build_data()
+        self._rebuild_components()
         self.global_step = 0
         self._last_visuals = self._empty_visuals()
         self._last_eval = None
-        self.backward_strategy = self._build_backward_strategy()
-
-    @staticmethod
-    def _init_weights(module: nn.Module) -> None:
-        if isinstance(module, nn.Linear):
-            nn.init.xavier_uniform_(module.weight)
-            if module.bias is not None:
-                nn.init.zeros_(module.bias)
 
     def _empty_visuals(self) -> Dict[str, Any]:
         return {
@@ -332,34 +248,23 @@ class TinySpikingTrainer:
             self._train_iter = iter(self.train_loader)
             batch = next(self._train_iter)
 
-        inputs, targets = batch
-        inputs = inputs.to(self.device)
-        targets = targets.to(self.device)
-
         capture_snapshot = (self.global_step % self.snapshot_interval) == 0
         before = self._snapshot_weights() if capture_snapshot else None
-        self.optimizer_strategy.zero_grad(model=self.model)
-        self.backward_strategy.zero_grad(model=self.model)
-
-        with ActivationRecorder(self.model) as recorder:
-            outputs = self.model(inputs)
-            loss = self.loss_fn(outputs, targets)
-            context = BatchContext(
-                epoch=0,
-                batch_idx=self.global_step,
-                model=self.model,
-                inputs=inputs,
-                targets=targets,
-                outputs=outputs,
-                loss=loss,
-                device=self.device,
-                activations=dict(recorder.records),
-            )
-            self.backward_strategy.backward(context)
-            self.optimizer_strategy.step(context)
+        inputs, targets = batch
+        context, outputs, loss = run_training_batch(
+            model=self.model,
+            inputs=inputs,
+            targets=targets,
+            backward_strategy=self.backward_strategy,
+            optimizer_strategy=self.optimizer_strategy,
+            device=self.device,
+            loss_fn=self.loss_fn,
+            epoch=0,
+            batch_idx=self.global_step,
+        )
 
         preds = outputs.argmax(dim=1)
-        accuracy = (preds == targets).float().mean().item()
+        accuracy = (preds == context.targets).float().mean().item()
         extras = {key: float(value) for key, value in context.extras.items()}
 
         if capture_snapshot:
@@ -367,8 +272,8 @@ class TinySpikingTrainer:
             deltas = self._compute_deltas(before, after) if before is not None else {}
             hidden_preacts = [tensor.detach().cpu().tolist() for tensor in self.model.last_hidden_preacts]
             spike_rates = [tensor.detach().cpu().tolist() for tensor in self.model.last_hidden_spikes]
-            inputs_list = inputs.detach().cpu().tolist()
-            targets_list = targets.detach().cpu().tolist()
+            inputs_list = context.inputs.detach().cpu().tolist()
+            targets_list = context.targets.detach().cpu().tolist()
             preds_list = preds.detach().cpu().tolist()
             logits_list = outputs.detach().cpu().tolist()
 

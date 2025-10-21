@@ -5,6 +5,7 @@ from .base import BackwardStrategy
 from .cofire import CoFireBackwardStrategy
 from .concentration import ConcentrationGradientBackwardStrategy
 from .mass_redistribution import MassRedistributionBackwardStrategy
+from .cg_wta import CgWtaBackwardStrategy
 
 __all__ = [
     "BackwardStrategy",
@@ -12,4 +13,5 @@ __all__ = [
     "CoFireBackwardStrategy",
     "MassRedistributionBackwardStrategy",
     "ConcentrationGradientBackwardStrategy",
+    "CgWtaBackwardStrategy",
 ]

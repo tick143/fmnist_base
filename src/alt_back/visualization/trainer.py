@@ -15,6 +15,8 @@ from ..models.synthetic import SyntheticDenseNetwork
 from ..optim.torch_optimizer import TorchOptimizerStrategy
 from ..training.context import BatchContext
 from ..utils.activations import ActivationRecorder
+from ..utils.imports import import_from_string
+from ..config import DatasetConfig as FMNISTDatasetConfig, TrainingConfig as FMNISTTrainingConfig
 
 
 LEARNING_RULE_LABELS: Dict[str, str] = {
@@ -61,6 +63,11 @@ class TrainerConfig:
     device: str = "cpu"
     model_type: str = "spiking"
     learning_rule: str = "mass_redistribution"
+    # If provided, overrides the default synthetic dataset loader.
+    # Example: "alt_back.data.fashion.dataloaders"
+    dataset_target: str | None = None
+    # Raw params from YAML dataset.params for custom loaders
+    dataset_raw: dict = field(default_factory=dict)
     release_rate: float = 0.25
     reward_gain: float = 0.6
     base_release: float = 0.1
@@ -73,6 +80,7 @@ class TrainerConfig:
     spike_threshold: float = 0.1
     spike_temperature: float = 0.3
     hidden_layers: list[int] = field(default_factory=lambda: [12, 12, 8])
+    output_neurons: int = 2
     signed_weights: bool = True
     use_target_bonus: bool = True
     target_gain: float = 0.5
@@ -93,6 +101,12 @@ class TrainerConfig:
     snapshot_interval: int = 1
     evaluate_interval: int = 1
     logging: dict = field(default_factory=dict)
+    model_target: str = "alt_back.models.spiking.TinySpikingNetwork"
+    model_params: dict[str, Any] = field(default_factory=dict)
+    backward_target: str = "alt_back.backward.mass_redistribution.MassRedistributionBackwardStrategy"
+    backward_params: dict[str, Any] = field(default_factory=dict)
+    optimizer_target: str = "alt_back.optim.null_optimizer.NullOptimizerStrategy"
+    optimizer_params: dict[str, Any] = field(default_factory=dict)
 
 
 class TinySpikingTrainer:
@@ -146,7 +160,7 @@ class TinySpikingTrainer:
             model = SyntheticDenseNetwork(
                 input_neurons=self.config.dataset.num_features,
                 hidden_layers=self.config.hidden_layers,
-                output_neurons=2,
+                output_neurons=self.config.output_neurons,
                 activation="relu",
             )
             self.config.model_type = "dense"
@@ -155,7 +169,7 @@ class TinySpikingTrainer:
         model = TinySpikingNetwork(
             input_neurons=self.config.dataset.num_features,
             hidden_layers=self.config.hidden_layers,
-            output_neurons=2,
+            output_neurons=self.config.output_neurons,
             spike_threshold=self.config.spike_threshold,
             spike_temperature=self.config.spike_temperature,
         )
@@ -210,7 +224,39 @@ class TinySpikingTrainer:
         )
 
     def _build_data(self) -> None:
-        self.train_loader, self.test_loader = create_dataloaders(self.config.dataset)
+        # Respect dataset target if provided
+        target = (self.config.dataset_target or "").strip()
+        if target:
+            try:
+                loader_fn = import_from_string(target)
+            except Exception:
+                loader_fn = None
+            if loader_fn is not None:
+                # Special-case Fashion-MNIST helper which expects specific config dataclasses
+                if target.endswith("alt_back.data.fashion.dataloaders"):
+                    raw = dict(self.config.dataset_raw or {})
+                    # Defaults
+                    root = raw.get("root", "./data")
+                    download = bool(raw.get("download", True))
+                    augmentations = raw.get("augmentations", {})
+                    dcfg = FMNISTDatasetConfig(root=root, download=download, augmentations=augmentations)
+                    bsz = int(raw.get("batch_size", getattr(self.config.dataset, "batch_size", 64)))
+                    nworkers = int(raw.get("num_workers", 0))
+                    tcfg = FMNISTTrainingConfig(batch_size=bsz, num_workers=nworkers)
+                    self.train_loader, self.test_loader = loader_fn(dcfg, tcfg)
+                else:
+                    # Fallback: attempt calling with raw params only
+                    kwargs = dict(self.config.dataset_raw or {})
+                    result = loader_fn(**kwargs)
+                    if isinstance(result, tuple) and len(result) == 2:
+                        self.train_loader, self.test_loader = result
+                    else:
+                        # If custom target misbehaves, fall back to synthetic
+                        self.train_loader, self.test_loader = create_dataloaders(self.config.dataset)
+            else:
+                self.train_loader, self.test_loader = create_dataloaders(self.config.dataset)
+        else:
+            self.train_loader, self.test_loader = create_dataloaders(self.config.dataset)
         self._train_iter = iter(self.train_loader)
 
     def reset(self, seed: int | None = None) -> None:
@@ -565,6 +611,12 @@ def trainer_config_from_yaml(path: str, base: TrainerConfig | None = None) -> Tr
     if training_section.get("seed") is not None:
         dataset_payload.setdefault("seed", training_section["seed"])
 
+    # Capture explicit dataset target/params so both trainer and CLI can hook custom loaders
+    dtarget = dataset_section.get("target")
+    if dtarget:
+        payload["dataset_target"] = dtarget
+        payload["dataset_raw"] = dict(dataset_params)
+
     if dataset_payload:
         payload["dataset"] = dataset_payload
 
@@ -574,6 +626,12 @@ def trainer_config_from_yaml(path: str, base: TrainerConfig | None = None) -> Tr
     elif "hidden_neurons" in model_params:
         payload["hidden_layers"] = _ensure_int_list(model_params["hidden_neurons"])
 
+    model_target = model_section.get("target")
+    if model_target:
+        payload["model_target"] = model_target
+    if model_params:
+        payload["model_params"] = dict(model_params)
+
     target_model = model_section.get("target") or ""
     target_lower = str(target_model).lower()
     if target_lower:
@@ -582,15 +640,22 @@ def trainer_config_from_yaml(path: str, base: TrainerConfig | None = None) -> Tr
         else:
             payload["model_type"] = "dense"
 
-    for key in ("spike_threshold", "spike_temperature", "input_neurons"):
+    for key in ("spike_threshold", "spike_temperature", "input_neurons", "output_neurons"):
         if key in model_params:
             if key == "input_neurons":
                 payload.setdefault("dataset", {})["num_features"] = model_params[key]
+            elif key == "output_neurons":
+                payload["output_neurons"] = int(model_params[key])
             else:
                 payload[key] = model_params[key]
 
     backward_params = backward_section.get("params", {})
     backward_target = backward_section.get("target", "") or ""
+
+    if backward_target:
+        payload["backward_target"] = backward_target
+    if backward_params:
+        payload["backward_params"] = dict(backward_params)
 
     if backward_target.endswith("ConcentrationGradientBackwardStrategy"):
         payload["learning_rule"] = "concentration"
@@ -653,5 +718,13 @@ def trainer_config_from_yaml(path: str, base: TrainerConfig | None = None) -> Tr
 
     if logging_section:
         payload["logging"] = logging_section
+
+    optimizer_section = raw.get("optimizer", {})
+    optimizer_target = optimizer_section.get("target")
+    optimizer_params = optimizer_section.get("params", {})
+    if optimizer_target:
+        payload["optimizer_target"] = optimizer_target
+    if optimizer_params:
+        payload["optimizer_params"] = dict(optimizer_params)
 
     return trainer_config_from_dict(payload, base=base)

@@ -59,6 +59,9 @@ class TinySpikingNetwork(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.dim() == 1:
             x = x.unsqueeze(0)
+        # Flatten images/sequences to feature vectors if needed
+        if x.dim() > 2:
+            x = x.view(x.size(0), -1)
 
         activ = x
         self.last_hidden_preacts = []

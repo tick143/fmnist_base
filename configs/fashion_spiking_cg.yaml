@@ -1,0 +1,50 @@
+training:
+  epochs: 100
+  batch_size: 128
+  log_interval: 200
+  device: auto
+  seed: 42
+  num_workers: 4
+
+dataset:
+  target: alt_back.data.fashion.dataloaders
+  params:
+    root: ./data
+    download: true
+    augmentations:
+      random_rotation: 10
+      normalize:
+        mean: [0.5]
+        std: [0.5]
+
+model:
+  target: alt_back.models.spiking.TinySpikingNetwork
+  params:
+    input_neurons: 784
+    hidden_layers: [256, 256]
+    output_neurons: 10
+    spike_threshold: 0.0
+    spike_temperature: 0.3
+
+backward:
+  target: alt_back.backward.cg_wta.CgWtaBackwardStrategy
+  params:
+    step_scale: 0.02
+    push_rate: 0.52
+    suppress_rate: 0.12
+    energy_momentum: 0.965
+    energy_slope: 1.4
+    lateral_inhibition: 0.03
+    background: 0.025
+    weight_clamp: 6.5
+
+optimizer:
+  target: alt_back.optim.null_optimizer.NullOptimizerStrategy
+  params: {}
+
+logging:
+  enabled: true
+  project: alt-back
+  run_name: fashion-spiking-cg
+  tags: ["fashion-mnist", "spiking", "cg-wta", "gradient-free"]
+

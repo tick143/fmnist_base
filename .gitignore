@@ -18,3 +18,5 @@ __pycache__/
 # Local virtualenvs
 .venv/
 venv/
+wandb/debug.log
+wandb/debug-internal.log

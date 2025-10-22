@@ -1,7 +1,7 @@
 training:
   epochs: 100
-  batch_size: 4
-  log_interval: 25
+  batch_size: 128
+  log_interval: 200
   device: auto
   seed: 42
   num_workers: 4
@@ -21,22 +21,23 @@ model:
   target: alt_back.models.spiking.TinySpikingNetwork
   params:
     input_neurons: 784
-    hidden_layers: [256, 256]
+    hidden_layers: [256, 256, 256]
     output_neurons: 10
     spike_threshold: 0.0
     spike_temperature: 0.3
 
 backward:
-  target: alt_back.backward.cg_wta.CgWtaBackwardStrategy
+  target: alt_back.backward.concentration.ConcentrationGradientBackwardStrategy
   params:
-    step_scale: 0.05
-    push_rate: 0.52
-    suppress_rate: 0.12
-    energy_momentum: 0.965
+    push_rate: 0.3
+    suppress_rate: 0.05
+    step_scale: 1
     energy_slope: 1.4
-    lateral_inhibition: 0.03
-    background: 0.025
+    energy_momentum: 0.5
+    concentration_momentum: 1.4
+    loss_tolerance: 1e-5
     weight_clamp: 6.5
+    direction_mode: outputs_minus_inputs
 
 optimizer:
   target: alt_back.optim.null_optimizer.NullOptimizerStrategy
@@ -45,6 +46,5 @@ optimizer:
 logging:
   enabled: true
   project: alt-back
-  run_name: fashion-spiking-cg
-  tags: ["fashion-mnist", "spiking", "cg-wta", "gradient-free"]
-
+  run_name: fashion-spiking-concentration
+  tags: ["fashion-mnist", "spiking", "concentration", "gradient-free"]

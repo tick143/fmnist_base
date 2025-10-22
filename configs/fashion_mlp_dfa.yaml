@@ -1,0 +1,42 @@
+training:
+  epochs: 10
+  batch_size: 128
+  log_interval: 200
+  device: auto
+  seed: 42
+  num_workers: 4
+
+dataset:
+  target: alt_back.data.fashion.dataloaders
+  params:
+    root: ./data
+    download: true
+    augmentations:
+      random_rotation: 10
+      normalize:
+        mean: [0.5]
+        std: [0.5]
+
+model:
+  target: alt_back.models.mlp.FashionMLP
+  params:
+    hidden_layers: [512, 256, 256]
+    dropout: 0.2
+    activation: relu
+
+backward:
+  target: alt_back.backward.direct_feedback_alignment.DirectFeedbackAlignmentBackwardStrategy
+  params:
+    feedback_scale: 1.0
+
+optimizer:
+  target: alt_back.optim.torch_optimizer.TorchOptimizerStrategy
+  params:
+    optimizer_class: torch.optim.Adam
+    lr: 0.001
+
+logging:
+  enabled: true
+  project: alt-back
+  run_name: fashion-mlp-dfa
+  tags: ["fashion-mnist", "mlp", "dfa", "backprop-free"]

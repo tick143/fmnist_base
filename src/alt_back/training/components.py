@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from typing import Any, Tuple
 
 import torch
@@ -14,6 +15,12 @@ def instantiate_component(component_cfg: ComponentConfig, **extra_kwargs: Any) -
     component_cls = import_from_string(component_cfg.target)
     kwargs = dict(component_cfg.params)
     kwargs.update(extra_kwargs)
+    signature = inspect.signature(component_cls.__init__)
+    parameters = list(signature.parameters.values())
+    has_var_kwargs = any(param.kind == inspect.Parameter.VAR_KEYWORD for param in parameters)
+    if not has_var_kwargs:
+        allowed = {param.name for param in parameters if param.name != "self"}
+        kwargs = {key: value for key, value in kwargs.items() if key in allowed}
     return component_cls(**kwargs)
 
 
@@ -81,6 +88,53 @@ def compose_model_params(config: Any) -> dict[str, Any]:
     return params
 
 
+_FLOAT_KEYS = {
+    "release_rate",
+    "reward_gain",
+    "base_release",
+    "decay",
+    "temperature",
+    "efficiency_bonus",
+    "column_competition",
+    "noise_std",
+    "mass_budget",
+    "target_gain",
+    "affinity_strength",
+    "affinity_decay",
+    "affinity_temperature",
+    "sign_consistency_strength",
+    "sign_consistency_momentum",
+    "push_rate",
+    "suppress_rate",
+    "step_scale",
+    "energy_slope",
+    "energy_momentum",
+    "concentration_momentum",
+    "loss_tolerance",
+    "weight_clamp",
+}
+
+_BOOL_KEYS = {
+    "signed_weights",
+    "enable_target_bonus",
+}
+
+
+def _coerce_value(key: str, value: Any) -> Any:
+    if key in _FLOAT_KEYS and isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return value
+    if key in _BOOL_KEYS and isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"true", "1", "yes", "on"}:
+            return True
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+    return value
+
+
 def compose_backward_params(config: Any) -> dict[str, Any]:
     params = dict(getattr(config, "backward_params", {}) or {})
     possible_keys = (
@@ -113,18 +167,20 @@ def compose_backward_params(config: Any) -> dict[str, Any]:
     )
     for key in possible_keys:
         if key in params:
+            params[key] = _coerce_value(key, params[key])
             continue
         if hasattr(config, key):
-            params[key] = getattr(config, key)
+            params[key] = _coerce_value(key, getattr(config, key))
 
     alias_map = {
         "use_target_bonus": "enable_target_bonus",
     }
     for source, target_key in alias_map.items():
         if target_key in params:
+            params[target_key] = _coerce_value(target_key, params[target_key])
             continue
         if hasattr(config, source):
-            params[target_key] = getattr(config, source)
+            params[target_key] = _coerce_value(target_key, getattr(config, source))
 
     return params
 

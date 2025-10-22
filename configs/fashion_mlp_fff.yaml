@@ -1,0 +1,40 @@
+training:
+  epochs: 100
+  batch_size: 64
+  log_interval: 200
+  device: auto
+  seed: 42
+  num_workers: 4
+
+dataset:
+  target: alt_back.data.fashion.dataloaders
+  params:
+    root: ./data
+    download: true
+    augmentations:
+      random_rotation: 10
+      normalize:
+        mean: [0.5]
+        std: [0.5]
+
+model:
+  target: alt_back.models.mlp.FashionMLP
+  params:
+    hidden_layers: [512, 256, 256]
+    dropout: 0.1
+    activation: relu
+
+backward:
+  target: alt_back.backward.fff.FFFBackwardStrategy
+  params:
+    adjustment_decay: 0.995
+
+optimizer:
+  target: alt_back.optim.null_optimizer.NullOptimizerStrategy
+  params: {}
+
+logging:
+  enabled: true
+  project: alt-back
+  run_name: fashion-mlp-fff
+  tags: ["fashion-mnist", "mlp", "fff", "backprop-free"]
